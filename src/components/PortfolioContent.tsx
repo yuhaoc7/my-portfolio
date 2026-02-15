@@ -12,16 +12,17 @@ import SpotlightCard from "@/components/SpotlightCard"
 import Image from "next/image"
 import TextTypeWrapper from "@/components/TextTypeWrapper"
 import TiltedCard from "@/components/TiltedCard"
-import { Github, Linkedin, Mail, Phone, MapPin, ExternalLink, Calendar, GraduationCap, Briefcase, Code } from "lucide-react"
+import { Github, Linkedin, Mail, Phone, MapPin, ExternalLink, Calendar, GraduationCap, Briefcase, Code, Globe } from "lucide-react"
 import {
   SiJavascript, SiPython, SiCplusplus, SiSharp, SiMysql,
   SiPytorch, SiReact, SiVuedotjs, SiNodedotjs, SiExpress, SiDocker,
   SiFastapi, SiApacheecharts, SiChartdotjs, SiVite,
-  SiUnity, SiGit, SiNvidia, SiLatex
+  SiUnity, SiGit, SiNvidia, SiLatex, SiGnubash,
+  SiGooglecloud, SiNginx, SiPostgresql, SiRedis, SiPrometheus
 } from "react-icons/si"
 import { DiDatabase } from "react-icons/di"
 import { MdTranslate } from "react-icons/md"
-import { FaBrain, FaRobot, FaCode, FaServer } from "react-icons/fa"
+import { FaBrain, FaRobot, FaCode, FaServer, FaMicrochip, FaJava, FaAws } from "react-icons/fa"
 import PillNav from "@/components/PillNav"
 
 // Custom hook for responsive card dimensions
@@ -82,8 +83,8 @@ export default function PortfolioContent() {
     return {
       baseColor: "var(--foreground)",
       pillColor: "var(--primary)",
-      hoveredPillTextColor: "var(--primary-foreground)",
-      pillTextColor: "var(--foreground)"
+      hoveredPillTextColor: "var(--background)",
+      pillTextColor: "var(--primary-foreground)"
     }
   }
 
@@ -95,19 +96,27 @@ export default function PortfolioContent() {
       { name: 'JavaScript', icon: <SiJavascript size={32} className="text-chart-1" />, level: 'Advanced' },
       { name: 'Python', icon: <SiPython size={32} className="text-chart-2" />, level: 'Advanced' },
       { name: 'C/C++', icon: <SiCplusplus size={32} className="text-chart-3" />, level: 'Intermediate' },
-      { name: 'C#', icon: <SiSharp size={32} className="text-chart-4" />, level: 'Intermediate' },
-      { name: 'SQL', icon: <DiDatabase size={32} className="text-chart-5" />, level: 'Advanced' },
-      { name: 'LaTeX', icon: <SiLatex size={32} className="text-primary" />, level: 'Intermediate' },
+      { name: 'Java', icon: <FaJava size={32} className="text-chart-4" />, level: 'Intermediate' },
+      { name: 'C#', icon: <SiSharp size={32} className="text-chart-5" />, level: 'Intermediate' },
+      { name: 'SQL', icon: <DiDatabase size={32} className="text-primary" />, level: 'Advanced' },
+      { name: 'Bash', icon: <SiGnubash size={32} className="text-accent" />, level: 'Intermediate' },
+      { name: 'SystemVerilog', icon: <FaMicrochip size={32} className="text-foreground" />, level: 'Intermediate' },
+      { name: 'Assembly', icon: <FaCode size={32} className="text-chart-1" />, level: 'Intermediate' },
+      { name: 'LaTeX', icon: <SiLatex size={32} className="text-chart-2" />, level: 'Intermediate' },
     ],
     technologies: [
-      { name: 'PyTorch', icon: <SiPytorch size={32} className="text-chart-1" />, level: 'Advanced' },
-      { name: 'React', icon: <SiReact size={32} className="text-chart-2" />, level: 'Advanced' },
-      { name: 'Vue 3', icon: <SiVuedotjs size={32} className="text-chart-3" />, level: 'Advanced' },
-      { name: 'Node.js', icon: <SiNodedotjs size={32} className="text-chart-4" />, level: 'Advanced' },
-      { name: 'Express', icon: <SiExpress size={32} className="text-foreground" />, level: 'Advanced' },
-      { name: 'MySQL', icon: <SiMysql size={32} className="text-chart-5" />, level: 'Advanced' },
-      { name: 'Docker', icon: <SiDocker size={32} className="text-primary" />, level: 'Intermediate' },
-      { name: 'FastAPI', icon: <SiFastapi size={32} className="text-accent" />, level: 'Advanced' },
+      { name: 'PyTorch', icon: <SiPytorch size={32} className="text-chart-3" />, level: 'Advanced' },
+      { name: 'React', icon: <SiReact size={32} className="text-chart-4" />, level: 'Advanced' },
+      { name: 'Vue 3', icon: <SiVuedotjs size={32} className="text-chart-5" />, level: 'Advanced' },
+      { name: 'Node.js', icon: <SiNodedotjs size={32} className="text-primary" />, level: 'Advanced' },
+      { name: 'Express', icon: <SiExpress size={32} className="text-accent" />, level: 'Advanced' },
+      { name: 'MySQL', icon: <SiMysql size={32} className="text-foreground" />, level: 'Advanced' },
+      { name: 'Docker', icon: <SiDocker size={32} className="text-chart-1" />, level: 'Intermediate' },
+      { name: 'FastAPI', icon: <SiFastapi size={32} className="text-chart-2" />, level: 'Advanced' },
+      { name: 'ECharts', icon: <SiApacheecharts size={32} className="text-chart-3" />, level: 'Intermediate' },
+      { name: 'Chart.js', icon: <SiChartdotjs size={32} className="text-chart-4" />, level: 'Intermediate' },
+      { name: 'Vite', icon: <SiVite size={32} className="text-chart-5" />, level: 'Intermediate' },
+      { name: 'Nginx', icon: <SiNginx size={32} className="text-primary" />, level: 'Intermediate' },
     ],
     domains: [
       { name: 'Full Stack Development', icon: <FaCode size={32} className="text-chart-1" />, level: 'Expert' },
@@ -116,10 +125,10 @@ export default function PortfolioContent() {
       { name: 'Reinforcement Learning', icon: <FaRobot size={32} className="text-chart-4" />, level: 'Intermediate' },
     ],
     tools: [
-      { name: 'VS Code', icon: <Code size={32} className="text-primary" />, level: 'Expert' },
-      { name: 'Unity3D', icon: <SiUnity size={32} className="text-foreground" />, level: 'Intermediate' },
+      { name: 'GCP', icon: <SiGooglecloud size={32} className="text-primary" />, level: 'Intermediate' },
+      { name: 'AWS', icon: <FaAws size={32} className="text-foreground" />, level: 'Intermediate' },
       { name: 'Git', icon: <SiGit size={32} className="text-chart-5" />, level: 'Advanced' },
-      { name: 'CUDA', icon: <SiNvidia size={32} className="text-accent" />, level: 'Intermediate' },
+      { name: 'VS Code', icon: <Code size={32} className="text-accent" />, level: 'Expert' },
     ]
   };
 
@@ -152,9 +161,9 @@ export default function PortfolioContent() {
 
             <div className="w-full max-w-4xl mx-auto">
               <TiltedCard
-                backgroundColor="var(--card)"
+                imageSrc="/city.jpg"
                 altText="Yuhao Cheng Information"
-                captionText="Yuhao Cheng - Portfolio Information Card"
+                captionText={undefined}
                 containerHeight={cardDimensions.containerHeight}
                 containerWidth="100%"
                 imageHeight={cardDimensions.imageHeight}
@@ -162,7 +171,7 @@ export default function PortfolioContent() {
                 rotateAmplitude={6}
                 scaleOnHover={1.02}
                 showMobileWarning={false}
-                showTooltip={true}
+                showTooltip={false}
                 displayOverlayContent={true}
                 overlayContent={
                   <div className="w-full h-full flex flex-col items-center justify-center text-center px-4 py-6 sm:p-8 text-card-foreground">
@@ -211,15 +220,17 @@ export default function PortfolioContent() {
                         <span className="truncate">US: +1 217-979-8890</span>
                       </div>
                       <div className="flex items-center justify-center lg:justify-start gap-2 min-w-0">
-                        <Phone className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                        <span className="truncate">CN: +86 18356008578</span>
+                        <Globe className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <a href="https://yuhaoc7.com" target="_blank" rel="noopener noreferrer" className="hover:underline truncate">
+                          yuhaoc7.com
+                        </a>
                       </div>
                     </div>
 
                     {/* Social Links - Responsive button sizing and layout */}
                     <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4 w-full max-w-sm sm:max-w-none">
                       <Button variant="outline" size="sm" className="bg-card-foreground/10 hover:bg-card-foreground/20 text-xs sm:text-sm" asChild>
-                        <a href="https://github.com/laserrr17" target="_blank" rel="noopener noreferrer">
+                        <a href="https://github.com/yuhaoc7" target="_blank" rel="noopener noreferrer">
                           <Github className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                           GitHub
                         </a>
@@ -318,12 +329,47 @@ export default function PortfolioContent() {
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle className="flex items-center gap-2">
+                        Weather & City Insights App (Android)
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </CardTitle>
+                      <CardDescription>Feature-rich Android application with Gemini LLM integration</CardDescription>
+                    </div>
+                    <Badge variant="color1">Sep 2025 – Dec 2025</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li>• Developed a feature-rich Android application in a seven-person Agile team, serving as a core developer for UI customization and backend integration.</li>
+                      <li>• Designed and implemented a dynamic theming engine, enabling user-customizable aesthetics and integrating Gemini LLM to generate UI themes from user prompts.</li>
+                      <li>• Built robust weather data retrieval services, abstracting third-party API interactions to deliver real-time conditions and AI-powered "Weather Insights" for tracked cities.</li>
+                      <li>• Engineered comprehensive automated test suites using JUnit, Robolectric, and Espresso, leveraging LLM-assisted tools to generate high-coverage test cases for user authentication flows.</li>
+                    </ul>
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      <Badge variant="secondary">Android</Badge>
+                      <Badge variant="secondary">Java</Badge>
+                      <Badge variant="secondary">Gemini LLM</Badge>
+                      <Badge variant="secondary">JUnit</Badge>
+                      <Badge variant="secondary">Robolectric</Badge>
+                      <Badge variant="secondary">Espresso</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </SpotlightCard>
+
+              <SpotlightCard className="custom-spotlight-card" spotlightColor="rgba(0, 229, 255, 0.2)">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
                         FinTrack Financial Tracking Platform
                         <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                           <ExternalLink className="h-4 w-4" />
                         </Button>
                       </CardTitle>
-                      <CardDescription>Full-stack financial tracking application with AI-powered forecasting</CardDescription>
+                      <CardDescription>Full-stack financial tracking application with cloud deployment</CardDescription>
                     </div>
                     <Badge variant="color1">Feb 2025 – Apr 2025</Badge>
                   </div>
@@ -331,18 +377,16 @@ export default function PortfolioContent() {
                 <CardContent>
                   <div className="space-y-3">
                     <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Built frontend with React + Material UI and backend with Node.js + Express, supporting real-time multi-currency conversion via APIs</li>
-                      <li>• Implemented time series forecasting (ARIMA, LSTM) for expense prediction and personalized budgeting</li>
-                      <li>• Designed MySQL schema, triggers, and stored procedures (SQL) ensuring transaction consistency</li>
+                      <li>• Designed and implemented a full-stack financial web application with React frontend and a Node.js/Express REST API, supporting real-time multi-currency conversion via external APIs.</li>
+                      <li>• Designed a relational MySQL schema (transactions, triggers, stored procedures) to ensure data consistency for financial records.</li>
+                      <li>• Deployed the system to Google Cloud Platform (GCP), hosting the Node.js API server, MySQL database, and frontend with cloud-based networking and storage.</li>
                     </ul>
                     <div className="flex flex-wrap gap-2 mt-4">
                       <Badge variant="secondary">React</Badge>
-                      <Badge variant="secondary">Material UI</Badge>
                       <Badge variant="secondary">Node.js</Badge>
                       <Badge variant="secondary">Express</Badge>
                       <Badge variant="secondary">MySQL</Badge>
-                      <Badge variant="secondary">LSTM</Badge>
-                      <Badge variant="secondary">ARIMA</Badge>
+                      <Badge variant="secondary">GCP</Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -408,9 +452,9 @@ export default function PortfolioContent() {
                 <CardContent>
                   <div className="space-y-3">
                     <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Developed a Vue 3 + TypeScript SPA with Vuex state management and Vue Router</li>
-                      <li>• Built interactive dashboards and data visualizations (ECharts, SQL-backed APIs) with real-time updates</li>
-                      <li>• Improved performance with Vite build system, modular SCSS, and API error handling</li>
+                      <li>• Built a single-page application (SPA) with Vue 3 + TypeScript and Vuex state management, following modular and component-driven design principles.</li>
+                      <li>• Developed data-intensive dashboards using ECharts, consuming SQL-backed REST APIs with robust loading, error handling, and state synchronization.</li>
+                      <li>• Improved reliability and developer velocity by adding unit tests (Jest/Vitest) and optimizing the build pipeline with Vite.</li>
                     </ul>
                     <div className="flex flex-wrap gap-2 mt-4">
                       <Badge variant="secondary">Vue 3</Badge>
@@ -418,7 +462,7 @@ export default function PortfolioContent() {
                       <Badge variant="secondary">Vuex</Badge>
                       <Badge variant="secondary">ECharts</Badge>
                       <Badge variant="secondary">Vite</Badge>
-                      <Badge variant="secondary">SCSS</Badge>
+                      <Badge variant="secondary">Jest/Vitest</Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -428,7 +472,7 @@ export default function PortfolioContent() {
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle>Deep Learning Intern</CardTitle>
+                      <CardTitle>Backend Developer Intern</CardTitle>
                       <CardDescription className="text-base font-medium">HiABR Lab</CardDescription>
                     </div>
                     <Badge variant="color1">May 2024 – Aug 2024</Badge>
@@ -437,16 +481,16 @@ export default function PortfolioContent() {
                 <CardContent>
                   <div className="space-y-3">
                     <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Automated PPT generation via prompt engineering + python-pptx, creating structured multi-slide outputs</li>
-                      <li>• Built text-to-image service using Docker + FastAPI, adding async scheduling for GPU efficiency</li>
-                      <li>• Deployed PyTorch ML models with CUDA multi-streaming, doubling throughput and cutting latency by 40%</li>
+                      <li>• Designed and implemented a distributed URL shortening service using FastAPI and PostgreSQL, with Redis caching for hot-path redirects to reduce latency and database load.</li>
+                      <li>• Built production-grade REST APIs with sliding-window rate limiting, idempotency keys, and input validation to ensure reliability and abuse prevention in a multi-tenant environment.</li>
+                      <li>• Added observability and deployment infrastructure by integrating Prometheus metrics and containerizing microservices with Docker.</li>
                     </ul>
                     <div className="flex flex-wrap gap-2 mt-4">
-                      <Badge variant="secondary">PyTorch</Badge>
-                      <Badge variant="secondary">Docker</Badge>
                       <Badge variant="secondary">FastAPI</Badge>
-                      <Badge variant="secondary">CUDA</Badge>
-                      <Badge variant="secondary">Python</Badge>
+                      <Badge variant="secondary">PostgreSQL</Badge>
+                      <Badge variant="secondary">Redis</Badge>
+                      <Badge variant="secondary">Docker</Badge>
+                      <Badge variant="secondary">Prometheus</Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -633,15 +677,15 @@ export default function PortfolioContent() {
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
                     <Badge variant="secondary" className="flex items-center gap-2">
-                      <Code size={16} />
+                      <FaMicrochip size={16} />
                       SystemVerilog
                     </Badge>
                     <Badge variant="secondary" className="flex items-center gap-2">
-                      <Code size={16} />
+                      <FaMicrochip size={16} />
                       Verilog
                     </Badge>
                     <Badge variant="secondary" className="flex items-center gap-2">
-                      <Code size={16} />
+                      <FaCode size={16} />
                       Assembly
                     </Badge>
                     <Badge variant="secondary" className="flex items-center gap-2">
@@ -655,6 +699,10 @@ export default function PortfolioContent() {
                     <Badge variant="secondary" className="flex items-center gap-2">
                       <SiVite size={16} />
                       Vite
+                    </Badge>
+                    <Badge variant="secondary" className="flex items-center gap-2">
+                      <SiNginx size={16} />
+                      Nginx
                     </Badge>
                   </div>
                 </CardContent>

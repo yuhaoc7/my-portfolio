@@ -38,7 +38,7 @@
   display: flex;
   align-items: center;
   height: var(--nav-h);
-  background: var(--color-2, #000);
+  background: var(--pill-nav-background, var(--color-2, #000));
   border-radius: 9999px;
 }
 
@@ -46,7 +46,7 @@
   width: var(--nav-h);
   height: var(--nav-h);
   border-radius: 50%;
-  background: var(--base, #000);
+  background: transparent;
   padding: 4px;
   display: inline-flex;
   align-items: center;
@@ -72,7 +72,7 @@
   height: 100%;
 }
 
-.pill-list > li {
+.pill-list>li {
   display: flex;
   height: 100%;
 }

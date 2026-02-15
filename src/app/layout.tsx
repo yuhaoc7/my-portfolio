@@ -115,7 +115,7 @@ export default function RootLayout({
               <DotGrid
                 dotSize={8}
                 gap={12}
-                baseColor="var(--color-1)"
+                baseColor="var(--dot-grid-base)"
                 activeColor='var(--color-2)'
                 proximity={120}
                 shockRadius={150}
@@ -125,7 +125,7 @@ export default function RootLayout({
                 style={{ width: '100%', height: '100%' }}
               />
             </div>
-            
+
             {/* Content layer */}
             <div className="relative z-10">
               {children}

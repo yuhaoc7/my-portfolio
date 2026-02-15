@@ -234,7 +234,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Yuhao Cheng**
 - Email: [yuhaoc7@outlook.com](mailto:yuhaoc7@outlook.com)
 - LinkedIn: [Yuhao Cheng](https://www.linkedin.com/in/yuhao-cheng-50b473328/)
-- GitHub: [@laserrr17](https://github.com/laserrr17)
+- GitHub: [@yuhaoc7](https://github.com/yuhaoc7)
 - Location: Champaign, IL, USA
 
 ## 🙏 Acknowledgments

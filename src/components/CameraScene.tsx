@@ -2,7 +2,7 @@
 
 import React, { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Environment, Float, useGLTF } from '@react-three/drei';
+import { PerspectiveCamera, Environment, Float, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 
 function CameraModel(props: React.ComponentProps<'group'>) {
@@ -24,17 +24,11 @@ function CameraModel(props: React.ComponentProps<'group'>) {
 
 export default function CameraScene() {
     return (
-        <div className="w-full h-[60vh] md:h-[600px] relative cursor-grab active:cursor-grabbing">
+        <div className="w-full h-[500px] md:h-[600px] relative">
             <Canvas shadows onCreated={({ gl }) => { gl.setClearColor(new THREE.Color(0x000000), 0) }}>
-                <PerspectiveCamera makeDefault position={[0, 1, 8.5]} fov={40} />
+                <PerspectiveCamera makeDefault position={[0, 1, 10]} fov={35} />
 
-                <OrbitControls
-                    enableZoom={true}
-                    enablePan={false}
-                    maxPolarAngle={Math.PI / 1.5}
-                    minPolarAngle={Math.PI / 3}
-                    enableRotate={true}
-                />
+                {/* OrbitControls removed to prevent user interaction */}
 
                 <Environment preset="studio" />
                 <ambientLight intensity={0.8} />
@@ -43,7 +37,7 @@ export default function CameraScene() {
 
                 <Float speed={2} rotationIntensity={0.1} floatIntensity={0.2}>
                     <React.Suspense fallback={null}>
-                        <CameraModel position={[0, -0.2, 0]} scale={10} rotation={[0, Math.PI, 0]} />
+                        <CameraModel position={[0, 1.0, 0]} scale={9} rotation={[0, Math.PI, 0]} />
                     </React.Suspense>
                 </Float>
             </Canvas>
