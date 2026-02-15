@@ -342,10 +342,10 @@ export default function PortfolioContent() {
                 <CardContent>
                   <div className="space-y-3">
                     <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Developed a feature-rich Android application in a seven-person Agile team, serving as a core developer for UI customization and backend integration.</li>
-                      <li>• Designed and implemented a dynamic theming engine, enabling user-customizable aesthetics and integrating Gemini LLM to generate UI themes from user prompts.</li>
-                      <li>• Built robust weather data retrieval services, abstracting third-party API interactions to deliver real-time conditions and AI-powered "Weather Insights" for tracked cities.</li>
-                      <li>• Engineered comprehensive automated test suites using JUnit, Robolectric, and Espresso, leveraging LLM-assisted tools to generate high-coverage test cases for user authentication flows.</li>
+                      <li>• Developed a feature-rich Android application in a seven-person <strong>Agile</strong> team, serving as a core developer for <strong>UI customization</strong> and <strong>backend integration</strong>.</li>
+                      <li>• Designed and implemented a dynamic <strong>theming engine</strong>, enabling user-customizable aesthetics and integrating <strong>Gemini</strong> LLM to generate UI themes from user prompts.</li>
+                      <li>• Built robust <strong>weather data retrieval services</strong>, abstracting third-party API interactions to deliver real-time conditions and AI-powered "Weather Insights" for tracked cities.</li>
+                      <li>• Engineered comprehensive <strong>automated test suites</strong> using <strong>JUnit</strong>, <strong>Robolectric</strong>, and <strong>Espresso</strong>, leveraging LLM-assisted tools to generate high-coverage test cases for user authentication flows.</li>
                     </ul>
                     <div className="flex flex-wrap gap-2 mt-4">
                       <Badge variant="secondary">Android</Badge>
@@ -377,9 +377,9 @@ export default function PortfolioContent() {
                 <CardContent>
                   <div className="space-y-3">
                     <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Designed and implemented a full-stack financial web application with React frontend and a Node.js/Express REST API, supporting real-time multi-currency conversion via external APIs.</li>
-                      <li>• Designed a relational MySQL schema (transactions, triggers, stored procedures) to ensure data consistency for financial records.</li>
-                      <li>• Deployed the system to Google Cloud Platform (GCP), hosting the Node.js API server, MySQL database, and frontend with cloud-based networking and storage.</li>
+                      <li>• Designed and implemented a <strong>full-stack</strong> financial web application with <strong>React</strong> frontend and a <strong>Node.js/Express</strong> REST API, supporting real-time multi-currency conversion via external APIs.</li>
+                      <li>• Designed a <strong>relational MySQL schema</strong> (transactions, triggers, stored procedures) to ensure <strong>data consistency</strong> for financial records.</li>
+                      <li>• Deployed the system to <strong>Google Cloud Platform (GCP)</strong>, hosting the <strong>Node.js</strong> API server, <strong>MySQL</strong> database, and frontend with cloud-based networking and storage.</li>
                     </ul>
                     <div className="flex flex-wrap gap-2 mt-4">
                       <Badge variant="secondary">React</Badge>
@@ -410,9 +410,9 @@ export default function PortfolioContent() {
                 <CardContent>
                   <div className="space-y-3">
                     <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Overcame the long-standing challenge of designing an effective reward function for RL-based web agents, enabling stable and efficient training</li>
-                      <li>• Integrated agent memory mechanisms to mitigate forgetting issues in complex, multi-step tasks, significantly improving long-horizon task performance</li>
-                      <li>• Fine-tuned LLMs with PyTorch using Supervised Fine-Tuning (SFT) and NLP techniques, achieving higher completion rates and stronger generalization on WebArena</li>
+                      <li>• Overcame the long-standing challenge of designing an effective <strong>reward function</strong> for <strong>RL-based web agents</strong>, enabling stable and efficient training</li>
+                      <li>• Integrated agent <strong>memory mechanisms</strong> to mitigate forgetting issues in complex, multi-step tasks, significantly improving long-horizon task performance</li>
+                      <li>• Fine-tuned <strong>LLMs</strong> with <strong>PyTorch</strong> using <strong>Supervised Fine-Tuning (SFT)</strong> and <strong>NLP</strong> techniques, achieving higher completion rates and stronger generalization on WebArena</li>
                     </ul>
                     <div className="flex flex-wrap gap-2 mt-4">
                       <Badge variant="secondary">PyTorch</Badge>
@@ -452,9 +452,9 @@ export default function PortfolioContent() {
                 <CardContent>
                   <div className="space-y-3">
                     <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Built a single-page application (SPA) with Vue 3 + TypeScript and Vuex state management, following modular and component-driven design principles.</li>
-                      <li>• Developed data-intensive dashboards using ECharts, consuming SQL-backed REST APIs with robust loading, error handling, and state synchronization.</li>
-                      <li>• Improved reliability and developer velocity by adding unit tests (Jest/Vitest) and optimizing the build pipeline with Vite.</li>
+                      <li>• Built a <strong>single-page application (SPA)</strong> with <strong>Vue 3 + TypeScript</strong> and <strong>Vuex</strong> state management, following modular and component-driven design principles.</li>
+                      <li>• Developed data-intensive dashboards using <strong>ECharts</strong>, consuming <strong>SQL-backed REST APIs</strong> with robust loading, error handling, and state synchronization.</li>
+                      <li>• Improved reliability and developer velocity by adding <strong>unit tests</strong> (<strong>Jest/Vitest</strong>) and optimizing the build pipeline with <strong>Vite</strong>.</li>
                     </ul>
                     <div className="flex flex-wrap gap-2 mt-4">
                       <Badge variant="secondary">Vue 3</Badge>
@@ -481,9 +481,9 @@ export default function PortfolioContent() {
                 <CardContent>
                   <div className="space-y-3">
                     <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Designed and implemented a distributed URL shortening service using FastAPI and PostgreSQL, with Redis caching for hot-path redirects to reduce latency and database load.</li>
-                      <li>• Built production-grade REST APIs with sliding-window rate limiting, idempotency keys, and input validation to ensure reliability and abuse prevention in a multi-tenant environment.</li>
-                      <li>• Added observability and deployment infrastructure by integrating Prometheus metrics and containerizing microservices with Docker.</li>
+                      <li>• Designed and implemented a <strong>distributed URL shortening service</strong> using <strong>FastAPI</strong> and <strong>PostgreSQL</strong>, with <strong>Redis</strong> caching for hot-path redirects to reduce latency and database load.</li>
+                      <li>• Built production-grade <strong>REST APIs</strong> with <strong>sliding-window rate limiting</strong>, <strong>idempotency keys</strong>, and input validation to ensure reliability and abuse prevention in a multi-tenant environment.</li>
+                      <li>• Added <strong>observability</strong> and deployment infrastructure by integrating <strong>Prometheus</strong> metrics and containerizing <strong>microservices</strong> with <strong>Docker</strong>.</li>
                     </ul>
                     <div className="flex flex-wrap gap-2 mt-4">
                       <Badge variant="secondary">FastAPI</Badge>
