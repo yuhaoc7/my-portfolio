@@ -18,7 +18,8 @@ import {
   SiPytorch, SiReact, SiVuedotjs, SiNodedotjs, SiExpress, SiDocker,
   SiFastapi, SiApacheecharts, SiChartdotjs, SiVite,
   SiUnity, SiGit, SiNvidia, SiLatex, SiGnubash,
-  SiGooglecloud, SiNginx, SiPostgresql, SiRedis, SiPrometheus
+  SiGooglecloud, SiNginx, SiPostgresql, SiRedis, SiPrometheus,
+  SiApachekafka, SiOpentelemetry, SiGrafana
 } from "react-icons/si"
 import { DiDatabase } from "react-icons/di"
 import { MdTranslate } from "react-icons/md"
@@ -111,12 +112,17 @@ export default function PortfolioContent() {
       { name: 'Node.js', icon: <SiNodedotjs size={32} className="text-primary" />, level: 'Advanced' },
       { name: 'Express', icon: <SiExpress size={32} className="text-accent" />, level: 'Advanced' },
       { name: 'MySQL', icon: <SiMysql size={32} className="text-foreground" />, level: 'Advanced' },
+      { name: 'PostgreSQL', icon: <SiPostgresql size={32} className="text-chart-4" />, level: 'Advanced' },
       { name: 'Docker', icon: <SiDocker size={32} className="text-chart-1" />, level: 'Intermediate' },
       { name: 'FastAPI', icon: <SiFastapi size={32} className="text-chart-2" />, level: 'Advanced' },
+      { name: 'Redis', icon: <SiRedis size={32} className="text-chart-4" />, level: 'Advanced' },
+      { name: 'Kafka', icon: <SiApachekafka size={32} className="text-accent" />, level: 'Intermediate' },
       { name: 'ECharts', icon: <SiApacheecharts size={32} className="text-chart-3" />, level: 'Intermediate' },
-      { name: 'Chart.js', icon: <SiChartdotjs size={32} className="text-chart-4" />, level: 'Intermediate' },
       { name: 'Vite', icon: <SiVite size={32} className="text-chart-5" />, level: 'Intermediate' },
       { name: 'Nginx', icon: <SiNginx size={32} className="text-primary" />, level: 'Intermediate' },
+      { name: 'OpenTelemetry', icon: <SiOpentelemetry size={32} className="text-chart-1" />, level: 'Intermediate' },
+      { name: 'Prometheus', icon: <SiPrometheus size={32} className="text-chart-2" />, level: 'Intermediate' },
+      { name: 'Grafana', icon: <SiGrafana size={32} className="text-chart-3" />, level: 'Intermediate' },
     ],
     domains: [
       { name: 'Full Stack Development', icon: <FaCode size={32} className="text-chart-1" />, level: 'Expert' },
@@ -443,6 +449,37 @@ export default function PortfolioContent() {
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
+                      <CardTitle>Backend / LLM Systems Intern</CardTitle>
+                      <CardDescription className="text-base font-medium">HiABR Lab</CardDescription>
+                    </div>
+                    <Badge variant="color1">Jun 2025 – Sep 2025</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li>• Built a <strong>high-concurrency, low-latency LLM retrieval pipeline</strong> with <strong>FastAPI</strong>, <strong>Redis</strong>, and <strong>Kafka</strong>, supporting scalable asynchronous retrieval-generation workflows under internal benchmark traffic.</li>
+                      <li>• Improved retrieval quality with <strong>BGE reranking</strong>, <strong>top-k tuning</strong>, and <strong>GraphRAG</strong>-based context organization, increasing benchmark retrieval accuracy from <strong>78.4%</strong> to <strong>87.9%</strong>.</li>
+                      <li>• Reduced p95 latency from <strong>1.42s</strong> to <strong>820ms</strong> through caching, batching, hot-path optimization, and <strong>GGUF/AWQ quantization</strong>, improving responsiveness for downstream generation services.</li>
+                      <li>• Built evaluation pipelines with <strong>RAGAS</strong> and hallucination-rate testing, improving faithfulness from <strong>0.71</strong> to <strong>0.84</strong> and lowering hallucination rate from <strong>18.6%</strong> to <strong>9.3%</strong>; added observability with <strong>OpenTelemetry</strong>, <strong>Prometheus</strong>, and <strong>Grafana</strong>.</li>
+                    </ul>
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      <Badge variant="secondary">FastAPI</Badge>
+                      <Badge variant="secondary">Redis</Badge>
+                      <Badge variant="secondary">Kafka</Badge>
+                      <Badge variant="secondary">GraphRAG</Badge>
+                      <Badge variant="secondary">AWQ</Badge>
+                      <Badge variant="secondary">OpenTelemetry</Badge>
+                      <Badge variant="secondary">Grafana</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </SpotlightCard>
+
+              <SpotlightCard className="custom-spotlight-card" spotlightColor="rgba(0, 229, 255, 0.2)">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
                       <CardTitle>Frontend Developer Intern</CardTitle>
                       <CardDescription className="text-base font-medium">visibilityx.ai</CardDescription>
                     </div>
@@ -703,6 +740,30 @@ export default function PortfolioContent() {
                     <Badge variant="secondary" className="flex items-center gap-2">
                       <SiNginx size={16} />
                       Nginx
+                    </Badge>
+                    <Badge variant="secondary" className="flex items-center gap-2">
+                      <SiPostgresql size={16} />
+                      PostgreSQL
+                    </Badge>
+                    <Badge variant="secondary" className="flex items-center gap-2">
+                      <SiRedis size={16} />
+                      Redis
+                    </Badge>
+                    <Badge variant="secondary" className="flex items-center gap-2">
+                      <SiApachekafka size={16} />
+                      Kafka
+                    </Badge>
+                    <Badge variant="secondary" className="flex items-center gap-2">
+                      <SiOpentelemetry size={16} />
+                      OpenTelemetry
+                    </Badge>
+                    <Badge variant="secondary" className="flex items-center gap-2">
+                      <SiPrometheus size={16} />
+                      Prometheus
+                    </Badge>
+                    <Badge variant="secondary" className="flex items-center gap-2">
+                      <SiGrafana size={16} />
+                      Grafana
                     </Badge>
                   </div>
                 </CardContent>
