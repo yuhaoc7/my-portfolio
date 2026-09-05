@@ -6,11 +6,11 @@ export default function StructuredData() {
     "@type": "Person",
     name: "Yuhao Cheng",
     jobTitle: ["Full Stack Developer", "Machine Learning Engineer", "Graduate Student"],
-    description: "Master's student in Computer Science at UIUC, specializing in Full Stack Development, Machine Learning, and NLP",
+    description: "Master's student in Computer Science at UIUC, working on visual reasoning in generative models, LLM agents, and full-stack systems",
     url: "https://yuhaoc7.com",
     image: "https://yuhaoc7.com/profile_picture.png",
-    email: "mailto:your-email@example.com", // Update with your actual email
-    telephone: "+1-XXX-XXX-XXXX", // Update with your actual phone if you want to include it
+    email: "mailto:yuhaoc7@outlook.com",
+    telephone: "+1-217-979-8890",
     address: {
       "@type": "PostalAddress",
       addressLocality: "Urbana-Champaign",
@@ -36,7 +36,9 @@ export default function StructuredData() {
       "MySQL",
       "Docker",
       "FastAPI",
-      "Three.js",
+      "Visual Reasoning",
+      "LLM Agents",
+      "TypeScript",
       "Computer Science"
     ],
     hasOccupation: {
@@ -53,8 +55,8 @@ export default function StructuredData() {
       url: "https://illinois.edu"
     },
     sameAs: [
-      "https://github.com/your-github-username", // Update with your actual GitHub
-      "https://linkedin.com/in/your-linkedin", // Update with your actual LinkedIn
+      "https://github.com/yuhaoc7",
+      "https://www.linkedin.com/in/yuhao-cheng-50b473328/",
       // Add other social profiles
     ],
     mainEntity: {
@@ -93,13 +95,13 @@ export default function StructuredData() {
   const portfolioStructuredData = {
     "@context": "https://schema.org",
     "@type": "CreativeWork",
-    name: "Personal Finance Manager",
-    description: "Full-stack web application for comprehensive personal finance management with real-time multi-currency conversion and AI-powered expense prediction",
+    name: "FinTrack Financial Tracking Platform",
+    description: "Full-stack web application for comprehensive personal finance management with real-time multi-currency conversion and budgeting",
     author: {
       "@type": "Person",
       name: "Yuhao Cheng"
     },
-    dateCreated: "2024",
+    dateCreated: "2025",
     programmingLanguage: ["JavaScript", "Python", "SQL"],
     runtimePlatform: ["React", "Node.js", "MySQL"],
     applicationCategory: "WebApplication",

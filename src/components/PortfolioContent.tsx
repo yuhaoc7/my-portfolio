@@ -1,29 +1,26 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useCustomTheme } from "@/contexts/ThemeContext"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import ModeToggle from "@/components/mode-toggle"
 import SpotlightCard from "@/components/SpotlightCard"
-import Image from "next/image"
 import TextTypeWrapper from "@/components/TextTypeWrapper"
 import TiltedCard from "@/components/TiltedCard"
-import { Github, Linkedin, Mail, Phone, MapPin, ExternalLink, Calendar, GraduationCap, Briefcase, Code, Globe } from "lucide-react"
+import { Github, Linkedin, Mail, Phone, MapPin, ExternalLink, BookOpen, Calendar, GraduationCap, Briefcase, Code, Globe } from "lucide-react"
 import {
-  SiJavascript, SiPython, SiCplusplus, SiSharp, SiMysql,
+  SiJavascript, SiPython, SiCplusplus, SiTypescript, SiMysql,
   SiPytorch, SiReact, SiVuedotjs, SiNodedotjs, SiExpress, SiDocker,
-  SiFastapi, SiApacheecharts, SiChartdotjs, SiVite,
-  SiUnity, SiGit, SiNvidia, SiLatex, SiGnubash,
-  SiGooglecloud, SiNginx, SiPostgresql, SiRedis, SiPrometheus,
-  SiApachekafka, SiOpentelemetry, SiGrafana
+  SiFastapi, SiApacheecharts, SiVite,
+  SiGit, SiNvidia, SiLinux, SiGnubash,
+  SiGooglecloud, SiNginx, SiPostgresql, SiRedis, SiPrometheus
 } from "react-icons/si"
 import { DiDatabase } from "react-icons/di"
 import { MdTranslate } from "react-icons/md"
-import { FaBrain, FaRobot, FaCode, FaServer, FaMicrochip, FaJava, FaAws } from "react-icons/fa"
+import { FaBrain, FaRobot, FaCode, FaServer, FaJava, FaAws } from "react-icons/fa"
 import PillNav from "@/components/PillNav"
 
 // Custom hook for responsive card dimensions
@@ -62,7 +59,6 @@ const useResponsiveCardDimensions = () => {
 }
 
 export default function PortfolioContent() {
-  const { colorTheme } = useCustomTheme()
   const cardDimensions = useResponsiveCardDimensions()
 
   // Navigation items for PillNav
@@ -71,13 +67,14 @@ export default function PortfolioContent() {
     { label: "Photography", href: "/photography" },
     { label: "About", href: "#about" },
     { label: "Education", href: "#education" },
+    { label: "Research", href: "#research" },
     { label: "Projects", href: "#projects" },
     { label: "Experience", href: "#experience" },
     { label: "Skills", href: "#skills" },
   ];
 
   // Simple active section tracking (you can enhance this with intersection observer)
-  const [activeSection, setActiveSection] = useState("#");
+  const [activeSection] = useState("#");
 
   // Get theme-aware colors for PillNav using CSS variables
   const getNavColors = () => {
@@ -94,47 +91,42 @@ export default function PortfolioContent() {
   // Skills showcase data - using CSS variables for consistent theming
   const skillsData = {
     languages: [
-      { name: 'JavaScript', icon: <SiJavascript size={32} className="text-chart-1" />, level: 'Advanced' },
-      { name: 'Python', icon: <SiPython size={32} className="text-chart-2" />, level: 'Advanced' },
-      { name: 'C/C++', icon: <SiCplusplus size={32} className="text-chart-3" />, level: 'Intermediate' },
-      { name: 'Java', icon: <FaJava size={32} className="text-chart-4" />, level: 'Intermediate' },
-      { name: 'C#', icon: <SiSharp size={32} className="text-chart-5" />, level: 'Intermediate' },
-      { name: 'SQL', icon: <DiDatabase size={32} className="text-primary" />, level: 'Advanced' },
-      { name: 'Bash', icon: <SiGnubash size={32} className="text-accent" />, level: 'Intermediate' },
-      { name: 'SystemVerilog', icon: <FaMicrochip size={32} className="text-foreground" />, level: 'Intermediate' },
-      { name: 'Assembly', icon: <FaCode size={32} className="text-chart-1" />, level: 'Intermediate' },
-      { name: 'LaTeX', icon: <SiLatex size={32} className="text-chart-2" />, level: 'Intermediate' },
+      { name: 'TypeScript', icon: <SiTypescript size={32} className="text-chart-4" /> },
+      { name: 'JavaScript', icon: <SiJavascript size={32} className="text-chart-1" /> },
+      { name: 'Python', icon: <SiPython size={32} className="text-chart-2" /> },
+      { name: 'C/C++', icon: <SiCplusplus size={32} className="text-chart-3" /> },
+      { name: 'Java', icon: <FaJava size={32} className="text-chart-4" /> },
+      { name: 'SQL', icon: <DiDatabase size={32} className="text-primary" /> },
+      { name: 'Bash', icon: <SiGnubash size={32} className="text-accent" /> },
     ],
     technologies: [
-      { name: 'PyTorch', icon: <SiPytorch size={32} className="text-chart-3" />, level: 'Advanced' },
-      { name: 'React', icon: <SiReact size={32} className="text-chart-4" />, level: 'Advanced' },
-      { name: 'Vue 3', icon: <SiVuedotjs size={32} className="text-chart-5" />, level: 'Advanced' },
-      { name: 'Node.js', icon: <SiNodedotjs size={32} className="text-primary" />, level: 'Advanced' },
-      { name: 'Express', icon: <SiExpress size={32} className="text-accent" />, level: 'Advanced' },
-      { name: 'MySQL', icon: <SiMysql size={32} className="text-foreground" />, level: 'Advanced' },
-      { name: 'PostgreSQL', icon: <SiPostgresql size={32} className="text-chart-4" />, level: 'Advanced' },
-      { name: 'Docker', icon: <SiDocker size={32} className="text-chart-1" />, level: 'Intermediate' },
-      { name: 'FastAPI', icon: <SiFastapi size={32} className="text-chart-2" />, level: 'Advanced' },
-      { name: 'Redis', icon: <SiRedis size={32} className="text-chart-4" />, level: 'Advanced' },
-      { name: 'Kafka', icon: <SiApachekafka size={32} className="text-accent" />, level: 'Intermediate' },
-      { name: 'ECharts', icon: <SiApacheecharts size={32} className="text-chart-3" />, level: 'Intermediate' },
-      { name: 'Vite', icon: <SiVite size={32} className="text-chart-5" />, level: 'Intermediate' },
-      { name: 'Nginx', icon: <SiNginx size={32} className="text-primary" />, level: 'Intermediate' },
-      { name: 'OpenTelemetry', icon: <SiOpentelemetry size={32} className="text-chart-1" />, level: 'Intermediate' },
-      { name: 'Prometheus', icon: <SiPrometheus size={32} className="text-chart-2" />, level: 'Intermediate' },
-      { name: 'Grafana', icon: <SiGrafana size={32} className="text-chart-3" />, level: 'Intermediate' },
+      { name: 'PyTorch', icon: <SiPytorch size={32} className="text-chart-3" /> },
+      { name: 'React', icon: <SiReact size={32} className="text-chart-4" /> },
+      { name: 'Vue 3', icon: <SiVuedotjs size={32} className="text-chart-5" /> },
+      { name: 'Node.js', icon: <SiNodedotjs size={32} className="text-primary" /> },
+      { name: 'Express', icon: <SiExpress size={32} className="text-accent" /> },
+      { name: 'MySQL', icon: <SiMysql size={32} className="text-foreground" /> },
+      { name: 'PostgreSQL', icon: <SiPostgresql size={32} className="text-chart-4" /> },
+      { name: 'Docker', icon: <SiDocker size={32} className="text-chart-1" /> },
+      { name: 'FastAPI', icon: <SiFastapi size={32} className="text-chart-2" /> },
+      { name: 'Redis', icon: <SiRedis size={32} className="text-chart-4" /> },
+      { name: 'ECharts', icon: <SiApacheecharts size={32} className="text-chart-3" /> },
+      { name: 'Vite', icon: <SiVite size={32} className="text-chart-5" /> },
+      { name: 'Nginx', icon: <SiNginx size={32} className="text-primary" /> },
+      { name: 'Prometheus', icon: <SiPrometheus size={32} className="text-chart-2" /> },
     ],
     domains: [
-      { name: 'Full Stack Development', icon: <FaCode size={32} className="text-chart-1" />, level: 'Expert' },
-      { name: 'Machine Learning', icon: <FaBrain size={32} className="text-chart-2" />, level: 'Advanced' },
-      { name: 'NLP', icon: <MdTranslate size={32} className="text-chart-3" />, level: 'Advanced' },
-      { name: 'Reinforcement Learning', icon: <FaRobot size={32} className="text-chart-4" />, level: 'Intermediate' },
+      { name: 'Full Stack Development', icon: <FaCode size={32} className="text-chart-1" /> },
+      { name: 'Machine Learning', icon: <FaBrain size={32} className="text-chart-2" /> },
+      { name: 'NLP', icon: <MdTranslate size={32} className="text-chart-3" /> },
+      { name: 'Reinforcement Learning', icon: <FaRobot size={32} className="text-chart-4" /> },
     ],
     tools: [
-      { name: 'GCP', icon: <SiGooglecloud size={32} className="text-primary" />, level: 'Intermediate' },
-      { name: 'AWS', icon: <FaAws size={32} className="text-foreground" />, level: 'Intermediate' },
-      { name: 'Git', icon: <SiGit size={32} className="text-chart-5" />, level: 'Advanced' },
-      { name: 'VS Code', icon: <Code size={32} className="text-accent" />, level: 'Expert' },
+      { name: 'GCP', icon: <SiGooglecloud size={32} className="text-primary" /> },
+      { name: 'AWS', icon: <FaAws size={32} className="text-foreground" /> },
+      { name: 'Linux', icon: <SiLinux size={32} className="text-chart-2" /> },
+      { name: 'CUDA', icon: <SiNvidia size={32} className="text-chart-3" /> },
+      { name: 'Git', icon: <SiGit size={32} className="text-chart-5" /> },
     ]
   };
 
@@ -192,7 +184,7 @@ export default function PortfolioContent() {
                         text={[
                           "Master's Student in Computer Science at UIUC",
                           "Full Stack Developer & ML Engineer",
-                          "Passionate about innovative tech solutions"
+                          "Visual Reasoning & LLM Agent Research"
                         ]}
                         typingSpeed={75}
                         pauseDuration={1500}
@@ -204,16 +196,16 @@ export default function PortfolioContent() {
 
                     {/* Description - Better mobile text sizing and spacing */}
                     <p className="text-sm sm:text-base md:text-lg mb-6 sm:mb-8 max-w-xs sm:max-w-md md:max-w-2xl mx-auto leading-relaxed">
-                      Specializing in Full Stack Development, Machine Learning, and Natural Language Processing.
-                      Currently supervised by <a href="https://czhai.cs.illinois.edu/" target="_blank" rel="noopener noreferrer" className="text-[var(--link-color)] hover:underline">Professor ChengXiang Zhai</a> as a research intern in the <a href="https://timan.cs.illinois.edu/ir/people.html" target="_blank" rel="noopener noreferrer" className="text-[var(--link-color)] hover:underline">TIMAN group</a>.
-                      Passionate about building innovative solutions that bridge technology and real-world applications.
+                      I am an MCS student at UIUC, working on visual reasoning in generative models,
+                      LLM agents, and full-stack systems. As a main contributor to VGI-Bench, I build
+                      benchmarks and evaluate the reasoning capabilities of image and video generation models.
                     </p>
 
                     {/* Contact Information - Responsive grid layout */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap justify-center gap-2 sm:gap-4 mb-6 sm:mb-8 text-xs sm:text-sm opacity-90 w-full max-w-lg lg:max-w-none">
                       <div className="flex items-center justify-center lg:justify-start gap-2 min-w-0">
                         <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                        <span className="truncate">603 E Clark St, IL 61820</span>
+                        <span className="truncate">Champaign, IL</span>
                       </div>
                       <div className="flex items-center justify-center lg:justify-start gap-2 min-w-0">
                         <Mail className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
@@ -274,7 +266,7 @@ export default function PortfolioContent() {
             <div className="space-y-6">
               <SpotlightCard className="custom-spotlight-card" spotlightColor="rgba(0, 229, 255, 0.2)">
                 <CardHeader>
-                  <div className="flex justify-between items-start">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
                     <div>
                       <CardTitle>Master of Computer Science (MCS)</CardTitle>
                       <CardDescription className="text-base font-medium">
@@ -283,7 +275,7 @@ export default function PortfolioContent() {
                     </div>
                     <Badge variant="color1" className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      Aug 2025 – Present
+                      Aug 2025 – Dec 2026 (Expected)
                     </Badge>
                   </div>
                 </CardHeader>
@@ -296,7 +288,7 @@ export default function PortfolioContent() {
 
               <SpotlightCard className="custom-spotlight-card" spotlightColor="rgba(0, 229, 255, 0.2)">
                 <CardHeader>
-                  <div className="flex justify-between items-start">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
                     <div>
                       <CardTitle>Bachelor of Science in Computer Engineering</CardTitle>
                       <CardDescription className="text-base font-medium">
@@ -305,7 +297,7 @@ export default function PortfolioContent() {
                     </div>
                     <Badge variant="color1" className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      2021 – 2025
+                      Aug 2021 – May 2025
                     </Badge>
                   </div>
                 </CardHeader>
@@ -321,221 +313,162 @@ export default function PortfolioContent() {
 
         <Separator className="my-16" />
 
-        {/* Projects Section */}
-        <section id="projects" className="py-16">
+        {/* Research & Publications Section */}
+        <section id="research" className="py-16 scroll-mt-24">
           <div className="mx-auto max-w-4xl">
-            <h2 className="text-3xl font-bold mb-8 flex items-center gap-2">
-              <Code className="h-8 w-8" />
-              Projects
-            </h2>
-
+            <h2 className="text-3xl font-bold mb-8 flex items-center gap-2"><BookOpen className="h-8 w-8" />Research & Publications</h2>
             <div className="space-y-6">
               <SpotlightCard className="custom-spotlight-card" spotlightColor="rgba(0, 229, 255, 0.2)">
                 <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        Weather & City Insights App (Android)
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                      </CardTitle>
-                      <CardDescription>Feature-rich Android application with Gemini LLM integration</CardDescription>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
+                    <div className="min-w-0">
+                      <CardTitle className="leading-snug">VGI-Bench: Probing Visual Intelligence in Video Generation Models</CardTitle>
+                      <CardDescription className="mt-2">Main Contributor · Visual reasoning benchmark</CardDescription>
                     </div>
-                    <Badge variant="color1">Sep 2025 – Dec 2025</Badge>
+                    <Badge variant="color1" className="shrink-0">2026</Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Developed a feature-rich Android application in a seven-person <strong>Agile</strong> team, serving as a core developer for <strong>UI customization</strong> and <strong>backend integration</strong>.</li>
-                      <li>• Designed and implemented a dynamic <strong>theming engine</strong>, enabling user-customizable aesthetics and integrating <strong>Gemini</strong> LLM to generate UI themes from user prompts.</li>
-                      <li>• Built robust <strong>weather data retrieval services</strong>, abstracting third-party API interactions to deliver real-time conditions and AI-powered "Weather Insights" for tracked cities.</li>
-                      <li>• Engineered comprehensive <strong>automated test suites</strong> using <strong>JUnit</strong>, <strong>Robolectric</strong>, and <strong>Espresso</strong>, leveraging LLM-assisted tools to generate high-coverage test cases for user authentication flows.</li>
-                    </ul>
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      <Badge variant="secondary">Android</Badge>
-                      <Badge variant="secondary">Java</Badge>
-                      <Badge variant="secondary">Gemini LLM</Badge>
-                      <Badge variant="secondary">JUnit</Badge>
-                      <Badge variant="secondary">Robolectric</Badge>
-                      <Badge variant="secondary">Espresso</Badge>
-                    </div>
+                  <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+                    <li>Co-developed a benchmark with <strong>27 tasks and 810 instances</strong> across four task domains and seven capability dimensions.</li>
+                    <li>Implemented and analyzed large-scale evaluations of state-of-the-art image and video generation models across task domains, capabilities, and difficulty levels.</li>
+                    <li>Analyzed thousands of generated outputs to study failure modes, input sensitivity, synthetic fine-tuning transfer, and denoising dynamics; found self-correction in <strong>less than 1%</strong> of decoded transitions.</li>
+                  </ul>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <Badge variant="secondary">Visual Reasoning</Badge>
+                    <Badge variant="secondary">Video Generation</Badge>
+                    <Badge variant="secondary">Model Evaluation</Badge>
                   </div>
+                  <div className="flex flex-wrap gap-3 mt-5"><Button variant="outline" size="sm" className="bg-card text-foreground dark:bg-card" asChild><a href="https://arxiv.org/abs/2608.19583" target="_blank" rel="noopener noreferrer">Paper · arXiv<ExternalLink className="ml-2 h-4 w-4" aria-hidden="true" /></a></Button><Button variant="outline" size="sm" className="bg-card text-foreground dark:bg-card" asChild><a href="https://hexuan21.github.io/VGI-Bench/" target="_blank" rel="noopener noreferrer">Project Page<ExternalLink className="ml-2 h-4 w-4" aria-hidden="true" /></a></Button></div>
                 </CardContent>
               </SpotlightCard>
-
               <SpotlightCard className="custom-spotlight-card" spotlightColor="rgba(0, 229, 255, 0.2)">
                 <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        FinTrack Financial Tracking Platform
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                      </CardTitle>
-                      <CardDescription>Full-stack financial tracking application with cloud deployment</CardDescription>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
+                    <div className="min-w-0">
+                      <CardTitle className="leading-snug">Web Navigation Agent Research Project</CardTitle>
+                      <CardDescription className="mt-2">Reinforcement learning and long-horizon LLM agents</CardDescription>
                     </div>
-                    <Badge variant="color1">Feb 2025 – Apr 2025</Badge>
+                    <Badge variant="color1" className="shrink-0">Sep 2024 – May 2025</Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Designed and implemented a <strong>full-stack</strong> financial web application with <strong>React</strong> frontend and a <strong>Node.js/Express</strong> REST API, supporting real-time multi-currency conversion via external APIs.</li>
-                      <li>• Designed a <strong>relational MySQL schema</strong> (transactions, triggers, stored procedures) to ensure <strong>data consistency</strong> for financial records.</li>
-                      <li>• Deployed the system to <strong>Google Cloud Platform (GCP)</strong>, hosting the <strong>Node.js</strong> API server, <strong>MySQL</strong> database, and frontend with cloud-based networking and storage.</li>
-                    </ul>
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      <Badge variant="secondary">React</Badge>
-                      <Badge variant="secondary">Node.js</Badge>
-                      <Badge variant="secondary">Express</Badge>
-                      <Badge variant="secondary">MySQL</Badge>
-                      <Badge variant="secondary">GCP</Badge>
-                    </div>
+                  <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+                    <li>Developed reinforcement-learning-based web agents across <strong>800+ WebArena tasks</strong>, designing dense reward functions for multi-step interaction and task completion.</li>
+                    <li>Implemented agent memory mechanisms to preserve task-relevant context over extended trajectories and improve long-horizon decision making.</li>
+                    <li>Fine-tuned <strong>8B-parameter LLMs</strong> using PyTorch and supervised fine-tuning on multi-GPU distributed infrastructure, with context lengths up to approximately <strong>16K tokens</strong>.</li>
+                  </ul>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <Badge variant="secondary">PyTorch</Badge>
+                    <Badge variant="secondary">Reinforcement Learning</Badge>
+                    <Badge variant="secondary">LLMs</Badge>
+                    <Badge variant="secondary">WebArena</Badge>
+                    <Badge variant="secondary">Multi-GPU Training</Badge>
                   </div>
-                </CardContent>
-              </SpotlightCard>
 
-              <SpotlightCard className="custom-spotlight-card" spotlightColor="rgba(0, 229, 255, 0.2)">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        Web Navigation Agent Research Project
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                      </CardTitle>
-                      <CardDescription>Advanced RL-based web agent with memory mechanisms</CardDescription>
-                    </div>
-                    <Badge variant="color1">Sep 2024 – May 2025</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Overcame the long-standing challenge of designing an effective <strong>reward function</strong> for <strong>RL-based web agents</strong>, enabling stable and efficient training</li>
-                      <li>• Integrated agent <strong>memory mechanisms</strong> to mitigate forgetting issues in complex, multi-step tasks, significantly improving long-horizon task performance</li>
-                      <li>• Fine-tuned <strong>LLMs</strong> with <strong>PyTorch</strong> using <strong>Supervised Fine-Tuning (SFT)</strong> and <strong>NLP</strong> techniques, achieving higher completion rates and stronger generalization on WebArena</li>
-                    </ul>
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      <Badge variant="secondary">PyTorch</Badge>
-                      <Badge variant="secondary">Reinforcement Learning</Badge>
-                      <Badge variant="secondary">NLP</Badge>
-                      <Badge variant="secondary">LLMs</Badge>
-                      <Badge variant="secondary">WebArena</Badge>
-                    </div>
-                  </div>
                 </CardContent>
               </SpotlightCard>
             </div>
           </div>
         </section>
+        <Separator className="my-16" />
 
+        {/* Projects Section */}
+        <section id="projects" className="py-16 scroll-mt-24">
+          <div className="mx-auto max-w-4xl">
+            <h2 className="text-3xl font-bold mb-8 flex items-center gap-2"><Code className="h-8 w-8" />Projects</h2>
+            <div className="space-y-6">
+              <SpotlightCard className="custom-spotlight-card" spotlightColor="rgba(0, 229, 255, 0.2)">
+                <CardHeader>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
+                    <div className="min-w-0">
+                      <CardTitle className="leading-snug">FinTrack Financial Tracking Platform</CardTitle>
+                      <CardDescription className="mt-2">Full-stack financial platform</CardDescription>
+                    </div>
+                    <Badge variant="color1" className="shrink-0">Feb 2025 – Apr 2025</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+                    <li>Built a full-stack platform with <strong>React, Node.js, Express, and MySQL</strong>, supporting transaction management, budgeting, and real-time multi-currency conversion through external APIs.</li>
+                    <li>Designed a normalized relational database with transactions, triggers, stored procedures, and transactional workflows; deployed the application stack on <strong>Google Cloud Platform</strong>.</li>
+                  </ul>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <Badge variant="secondary">React</Badge>
+                    <Badge variant="secondary">Node.js</Badge>
+                    <Badge variant="secondary">Express</Badge>
+                    <Badge variant="secondary">MySQL</Badge>
+                    <Badge variant="secondary">GCP</Badge>
+                  </div>
+
+                </CardContent>
+              </SpotlightCard>
+            </div>
+          </div>
+        </section>
         <Separator className="my-16" />
 
         {/* Experience Section */}
-        <section id="experience" className="py-16">
+        <section id="experience" className="py-16 scroll-mt-24">
           <div className="mx-auto max-w-4xl">
-            <h2 className="text-3xl font-bold mb-8 flex items-center gap-2">
-              <Briefcase className="h-8 w-8" />
-              Experience
-            </h2>
-
+            <h2 className="text-3xl font-bold mb-8 flex items-center gap-2"><Briefcase className="h-8 w-8" />Experience</h2>
             <div className="space-y-6">
               <SpotlightCard className="custom-spotlight-card" spotlightColor="rgba(0, 229, 255, 0.2)">
                 <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>Backend / LLM Systems Intern</CardTitle>
-                      <CardDescription className="text-base font-medium">HiABR Lab</CardDescription>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
+                    <div className="min-w-0">
+                      <CardTitle className="leading-snug">Frontend Developer Intern</CardTitle>
+                      <CardDescription className="mt-2">visibilityx.ai</CardDescription>
                     </div>
-                    <Badge variant="color1">Jun 2025 – Sep 2025</Badge>
+                    <Badge variant="color1" className="shrink-0">Jun 2025 – Aug 2025</Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Built a <strong>high-concurrency, low-latency LLM retrieval pipeline</strong> with <strong>FastAPI</strong>, <strong>Redis</strong>, and <strong>Kafka</strong>, supporting scalable asynchronous retrieval-generation workflows under internal benchmark traffic.</li>
-                      <li>• Improved retrieval quality with <strong>BGE reranking</strong>, <strong>top-k tuning</strong>, and <strong>GraphRAG</strong>-based context organization, increasing benchmark retrieval accuracy from <strong>78.4%</strong> to <strong>87.9%</strong>.</li>
-                      <li>• Reduced p95 latency from <strong>1.42s</strong> to <strong>820ms</strong> through caching, batching, hot-path optimization, and <strong>GGUF/AWQ quantization</strong>, improving responsiveness for downstream generation services.</li>
-                      <li>• Built evaluation pipelines with <strong>RAGAS</strong> and hallucination-rate testing, improving faithfulness from <strong>0.71</strong> to <strong>0.84</strong> and lowering hallucination rate from <strong>18.6%</strong> to <strong>9.3%</strong>; added observability with <strong>OpenTelemetry</strong>, <strong>Prometheus</strong>, and <strong>Grafana</strong>.</li>
-                    </ul>
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      <Badge variant="secondary">FastAPI</Badge>
-                      <Badge variant="secondary">Redis</Badge>
-                      <Badge variant="secondary">Kafka</Badge>
-                      <Badge variant="secondary">GraphRAG</Badge>
-                      <Badge variant="secondary">AWQ</Badge>
-                      <Badge variant="secondary">OpenTelemetry</Badge>
-                      <Badge variant="secondary">Grafana</Badge>
-                    </div>
+                  <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+                    <li>Built a <strong>Vue 3 and TypeScript</strong> single-page application with <strong>10+ dashboard views</strong> and reusable UI components, reducing duplicated frontend code by approximately <strong>25%</strong>.</li>
+                    <li>Developed interactive analytics dashboards with ECharts and SQL-backed REST APIs, reducing average dashboard load time by approximately <strong>30%</strong> through optimized asynchronous fetching and state management.</li>
+                    <li>Added Jest and Vitest unit tests for core frontend modules, increasing test coverage to approximately <strong>80%</strong>.</li>
+                  </ul>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <Badge variant="secondary">Vue 3</Badge>
+                    <Badge variant="secondary">TypeScript</Badge>
+                    <Badge variant="secondary">ECharts</Badge>
+                    <Badge variant="secondary">REST APIs</Badge>
+                    <Badge variant="secondary">Jest</Badge>
+                    <Badge variant="secondary">Vitest</Badge>
                   </div>
+
                 </CardContent>
               </SpotlightCard>
-
               <SpotlightCard className="custom-spotlight-card" spotlightColor="rgba(0, 229, 255, 0.2)">
                 <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>Frontend Developer Intern</CardTitle>
-                      <CardDescription className="text-base font-medium">visibilityx.ai</CardDescription>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
+                    <div className="min-w-0">
+                      <CardTitle className="leading-snug">Backend Developer Intern</CardTitle>
+                      <CardDescription className="mt-2">HiABR Lab</CardDescription>
                     </div>
-                    <Badge variant="color1">Jun 2025 – Aug 2025</Badge>
+                    <Badge variant="color1" className="shrink-0">May 2024 – Aug 2024</Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Built a <strong>single-page application (SPA)</strong> with <strong>Vue 3 + TypeScript</strong> and <strong>Vuex</strong> state management, following modular and component-driven design principles.</li>
-                      <li>• Developed data-intensive dashboards using <strong>ECharts</strong>, consuming <strong>SQL-backed REST APIs</strong> with robust loading, error handling, and state synchronization.</li>
-                      <li>• Improved reliability and developer velocity by adding <strong>unit tests</strong> (<strong>Jest/Vitest</strong>) and optimizing the build pipeline with <strong>Vite</strong>.</li>
-                    </ul>
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      <Badge variant="secondary">Vue 3</Badge>
-                      <Badge variant="secondary">TypeScript</Badge>
-                      <Badge variant="secondary">Vuex</Badge>
-                      <Badge variant="secondary">ECharts</Badge>
-                      <Badge variant="secondary">Vite</Badge>
-                      <Badge variant="secondary">Jest/Vitest</Badge>
-                    </div>
+                  <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+                    <li>Implemented a distributed URL-shortening service with <strong>FastAPI, PostgreSQL, and Redis</strong>, reducing redirect latency by approximately <strong>60%</strong> and database reads by approximately <strong>70%</strong> through caching.</li>
+                    <li>Built REST APIs with sliding-window rate limiting, idempotency keys, and input validation, supporting approximately <strong>1,000+ requests per minute</strong> while preventing duplicate operations and abusive traffic.</li>
+                    <li>Integrated Prometheus monitoring and containerized services with Docker, reducing deployment setup time by approximately <strong>50%</strong> and providing visibility into latency, traffic, and error rates.</li>
+                  </ul>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <Badge variant="secondary">FastAPI</Badge>
+                    <Badge variant="secondary">PostgreSQL</Badge>
+                    <Badge variant="secondary">Redis</Badge>
+                    <Badge variant="secondary">Docker</Badge>
+                    <Badge variant="secondary">Prometheus</Badge>
                   </div>
-                </CardContent>
-              </SpotlightCard>
 
-              <SpotlightCard className="custom-spotlight-card" spotlightColor="rgba(0, 229, 255, 0.2)">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>Backend Developer Intern</CardTitle>
-                      <CardDescription className="text-base font-medium">HiABR Lab</CardDescription>
-                    </div>
-                    <Badge variant="color1">May 2024 – Aug 2024</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Designed and implemented a <strong>distributed URL shortening service</strong> using <strong>FastAPI</strong> and <strong>PostgreSQL</strong>, with <strong>Redis</strong> caching for hot-path redirects to reduce latency and database load.</li>
-                      <li>• Built production-grade <strong>REST APIs</strong> with <strong>sliding-window rate limiting</strong>, <strong>idempotency keys</strong>, and input validation to ensure reliability and abuse prevention in a multi-tenant environment.</li>
-                      <li>• Added <strong>observability</strong> and deployment infrastructure by integrating <strong>Prometheus</strong> metrics and containerizing <strong>microservices</strong> with <strong>Docker</strong>.</li>
-                    </ul>
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      <Badge variant="secondary">FastAPI</Badge>
-                      <Badge variant="secondary">PostgreSQL</Badge>
-                      <Badge variant="secondary">Redis</Badge>
-                      <Badge variant="secondary">Docker</Badge>
-                      <Badge variant="secondary">Prometheus</Badge>
-                    </div>
-                  </div>
                 </CardContent>
               </SpotlightCard>
             </div>
           </div>
         </section>
-
         <Separator className="my-16" />
 
         {/* Skills Section */}
@@ -573,7 +506,7 @@ export default function PortfolioContent() {
               <TiltedCard
                 backgroundColor="var(--chart-2)"
                 altText="Machine Learning"
-                captionText="Machine Learning - PyTorch, TensorFlow, NLP"
+                captionText="Machine Learning - PyTorch, LLMs, Visual Reasoning"
                 containerHeight="200px"
                 containerWidth="200px"
                 imageHeight="180px"
@@ -633,7 +566,6 @@ export default function PortfolioContent() {
                         <div className="flex-shrink-0">{skill.icon}</div>
                         <div className="flex-1">
                           <div className="font-medium text-sm">{skill.name}</div>
-                          <div className="text-xs text-muted-foreground">{skill.level}</div>
                         </div>
                       </div>
                     ))}
@@ -656,7 +588,6 @@ export default function PortfolioContent() {
                         <div className="flex-shrink-0">{skill.icon}</div>
                         <div className="flex-1">
                           <div className="font-medium text-sm">{skill.name}</div>
-                          <div className="text-xs text-muted-foreground">{skill.level}</div>
                         </div>
                       </div>
                     ))}
@@ -678,7 +609,6 @@ export default function PortfolioContent() {
                       <div key={index} className="text-center p-4 rounded-lg hover:bg-muted/50 transition-colors">
                         <div className="flex justify-center mb-2">{skill.icon}</div>
                         <div className="font-medium text-sm mb-1">{skill.name}</div>
-                        <div className="text-xs text-muted-foreground">{skill.level}</div>
                       </div>
                     ))}
                   </div>
@@ -699,75 +629,12 @@ export default function PortfolioContent() {
                       <div key={index} className="text-center p-4 rounded-lg hover:bg-muted/50 transition-colors">
                         <div className="flex justify-center mb-2">{skill.icon}</div>
                         <div className="font-medium text-sm mb-1">{skill.name}</div>
-                        <div className="text-xs text-muted-foreground">{skill.level}</div>
                       </div>
                     ))}
                   </div>
                 </CardContent>
               </SpotlightCard>
 
-              {/* Additional Skills - Wide Card */}
-              <SpotlightCard className="md:col-span-2 custom-spotlight-card" spotlightColor="rgba(69, 183, 209, 0.2)">
-                <CardHeader>
-                  <CardTitle className="text-lg">Additional Skills</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary" className="flex items-center gap-2">
-                      <FaMicrochip size={16} />
-                      SystemVerilog
-                    </Badge>
-                    <Badge variant="secondary" className="flex items-center gap-2">
-                      <FaMicrochip size={16} />
-                      Verilog
-                    </Badge>
-                    <Badge variant="secondary" className="flex items-center gap-2">
-                      <FaCode size={16} />
-                      Assembly
-                    </Badge>
-                    <Badge variant="secondary" className="flex items-center gap-2">
-                      <SiApacheecharts size={16} />
-                      ECharts
-                    </Badge>
-                    <Badge variant="secondary" className="flex items-center gap-2">
-                      <SiChartdotjs size={16} />
-                      Chart.js
-                    </Badge>
-                    <Badge variant="secondary" className="flex items-center gap-2">
-                      <SiVite size={16} />
-                      Vite
-                    </Badge>
-                    <Badge variant="secondary" className="flex items-center gap-2">
-                      <SiNginx size={16} />
-                      Nginx
-                    </Badge>
-                    <Badge variant="secondary" className="flex items-center gap-2">
-                      <SiPostgresql size={16} />
-                      PostgreSQL
-                    </Badge>
-                    <Badge variant="secondary" className="flex items-center gap-2">
-                      <SiRedis size={16} />
-                      Redis
-                    </Badge>
-                    <Badge variant="secondary" className="flex items-center gap-2">
-                      <SiApachekafka size={16} />
-                      Kafka
-                    </Badge>
-                    <Badge variant="secondary" className="flex items-center gap-2">
-                      <SiOpentelemetry size={16} />
-                      OpenTelemetry
-                    </Badge>
-                    <Badge variant="secondary" className="flex items-center gap-2">
-                      <SiPrometheus size={16} />
-                      Prometheus
-                    </Badge>
-                    <Badge variant="secondary" className="flex items-center gap-2">
-                      <SiGrafana size={16} />
-                      Grafana
-                    </Badge>
-                  </div>
-                </CardContent>
-              </SpotlightCard>
 
             </div>
           </div>

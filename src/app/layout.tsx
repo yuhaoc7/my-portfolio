@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     default: "Yuhao Cheng - Full Stack Developer & ML Engineer",
     template: "%s | Yuhao Cheng Portfolio"
   },
-  description: "Master's student in Computer Science at UIUC, specializing in Full Stack Development, Machine Learning, and NLP. Experienced in React, Python, PyTorch, and modern web technologies.",
+  description: "Master's student in Computer Science at UIUC, working on visual reasoning in generative models, LLM agents, and full-stack systems. Experienced in React, Python, PyTorch, and modern web technologies.",
   keywords: [
     "Yuhao Cheng",
     "Full Stack Developer",
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://yuhaoc7.com",
     title: "Yuhao Cheng - Full Stack Developer & ML Engineer",
-    description: "Master's student in Computer Science at UIUC, specializing in Full Stack Development, Machine Learning, and NLP. View my projects and experience.",
+    description: "Master's student in Computer Science at UIUC, working on visual reasoning in generative models, LLM agents, and full-stack systems. Explore my research, publications, and projects.",
     siteName: "Yuhao Cheng Portfolio",
     images: [
       {
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Yuhao Cheng - Full Stack Developer & ML Engineer",
-    description: "Master's student in Computer Science at UIUC, specializing in Full Stack Development, Machine Learning, and NLP.",
+    description: "Master's student in Computer Science at UIUC, working on visual reasoning in generative models, LLM agents, and full-stack systems.",
     images: ["/profile_picture.png"],
     creator: "@YuhaoCheng", // Update with actual Twitter handle if available
   },
