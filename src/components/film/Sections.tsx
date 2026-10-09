@@ -163,10 +163,6 @@ export default function Sections() {
                 <p className="mono dim">{e.period}</p>
                 <h3 className="edu-degree">{e.degree}</h3>
               </div>
-              <div className="edu-gpa">
-                <span className="edu-gpa-n">{e.gpa}</span>
-                <span className="mono dim">GPA</span>
-              </div>
             </div>
           ))}
         </div>
