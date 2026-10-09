@@ -665,17 +665,6 @@ html:has(.film) body {
   line-height: 1.1;
   margin: 8px 0 0;
 }
-.edu-gpa {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-.edu-gpa-n {
-  font-family: var(--serif);
-  font-size: 48px;
-  line-height: 1;
-}
-
 /* Toolkit */
 .panel-full {
   width: 100%;

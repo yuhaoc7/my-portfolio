@@ -23,13 +23,11 @@ export const education = [
     school: "University of Illinois Urbana-Champaign",
     degree: "Master of Computer Science",
     period: "Aug 2025 — Dec 2026",
-    gpa: "3.85",
   },
   {
     school: "University of Illinois Urbana-Champaign",
     degree: "B.S. in Computer Engineering",
     period: "Aug 2021 — May 2025",
-    gpa: "3.77",
   },
 ];
 
