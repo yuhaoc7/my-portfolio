@@ -1,7 +1,5 @@
-import PortfolioContent from "@/components/PortfolioContent"
+import FilmSite from "@/components/film/FilmSite"
 
 export default function Portfolio() {
-  return <PortfolioContent />
+  return <FilmSite />
 }
-
-

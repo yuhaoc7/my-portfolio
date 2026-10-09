@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CustomThemeProvider } from "@/contexts/ThemeContext";
-import DotGrid from "@/components/DotGrid";
 import StructuredData from "@/components/StructuredData";
 
 const geistSans = Geist({
@@ -16,12 +15,19 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-serif",
+  weight: "400",
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: {
-    default: "Yuhao Cheng - Full Stack Developer & ML Engineer",
+    default: "Yuhao Cheng — ML Systems & Research Engineer",
     template: "%s | Yuhao Cheng Portfolio"
   },
-  description: "Master's student in Computer Science at UIUC, working on visual reasoning in generative models, LLM agents, and full-stack systems. Experienced in React, Python, PyTorch, and modern web technologies.",
+  description: "M.S. Computer Science at UIUC. I build the systems underneath models — distributed training, multi-GPU inference and large-scale LLM evaluation. Experienced in React, Python, PyTorch, and modern web technologies.",
   keywords: [
     "Yuhao Cheng",
     "Full Stack Developer",
@@ -52,22 +58,22 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://yuhaoc7.com",
-    title: "Yuhao Cheng - Full Stack Developer & ML Engineer",
-    description: "Master's student in Computer Science at UIUC, working on visual reasoning in generative models, LLM agents, and full-stack systems. Explore my research, publications, and projects.",
+    title: "Yuhao Cheng — ML Systems & Research Engineer",
+    description: "M.S. Computer Science at UIUC. I build the systems underneath models — distributed training, multi-GPU inference and large-scale LLM evaluation. Explore my research, publications, and projects.",
     siteName: "Yuhao Cheng Portfolio",
     images: [
       {
         url: "/profile_picture.png",
         width: 1200,
         height: 630,
-        alt: "Yuhao Cheng - Full Stack Developer & ML Engineer",
+        alt: "Yuhao Cheng — ML Systems & Research Engineer",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Yuhao Cheng - Full Stack Developer & ML Engineer",
-    description: "Master's student in Computer Science at UIUC, working on visual reasoning in generative models, LLM agents, and full-stack systems.",
+    title: "Yuhao Cheng — ML Systems & Research Engineer",
+    description: "M.S. Computer Science at UIUC. I build the systems underneath models — distributed training, multi-GPU inference and large-scale LLM evaluation.",
     images: ["/profile_picture.png"],
     creator: "@YuhaoCheng", // Update with actual Twitter handle if available
   },
@@ -101,7 +107,7 @@ export default function RootLayout({
         <StructuredData />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} antialiased`}
       >
         <ThemeProvider
           attribute="class"
@@ -110,26 +116,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <CustomThemeProvider>
-            {/* Full-screen DotGrid Background */}
-            <div className="fixed inset-0 w-full h-full z-0">
-              <DotGrid
-                dotSize={8}
-                gap={12}
-                baseColor="var(--dot-grid-base)"
-                activeColor='var(--color-2)'
-                proximity={120}
-                shockRadius={150}
-                shockStrength={5}
-                resistance={750}
-                returnDuration={1.5}
-                style={{ width: '100%', height: '100%' }}
-              />
-            </div>
-
-            {/* Content layer */}
-            <div className="relative z-10">
-              {children}
-            </div>
+            {children}
           </CustomThemeProvider>
         </ThemeProvider>
       </body>
