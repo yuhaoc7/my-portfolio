@@ -1,227 +1,296 @@
-// GPU training cluster: the IBM–Illinois station of the portfolio (4 nodes × 4 GPUs, full-parameter
-// training with DeepSpeed ZeRO-3), redrawn as an iso-glow 3D figure. Training runs in real steps:
-// every GPU computes, then gradients travel the all-reduce ring between the nodes and the loss drops.
-// Pull a node's power and the synchronous ring stalls until it comes back.
+// GPU cluster, built by scrolling. One shot, no buttons: the camera starts on an open 4U server,
+// eight GPU cards drop into its PCIe slots, the camera pulls back while the other 56 cards seat
+// across eight servers, the lids close, the nodes slide into two racks, the cabling is run the way
+// a real row is cabled (two NIC links per node through the vertical manager to the top-of-rack
+// switch, uplinks in the overhead tray), and the cluster powers on.
 FIGS3D.push({ id: 'gc', name: 'GPU cluster', mod: (() => {
-  // phones: the figure gets the screen; controls become a bottom toolbar above the readout
-  document.head.insertAdjacentHTML('beforeend', `<style>@media (max-width: 720px) {
-    #info { display: none !important; }
-    #ctl-gc { top: auto !important; bottom: 56px !important; left: 12px !important; right: 12px !important; width: auto !important; flex-direction: row !important; overflow-x: auto; }
-    #ctl-gc button { flex: 0 0 auto; min-height: 38px; padding: 0 14px; } #ctl-gc kbd { display: none; } #ctl-gc .sep { display: none; } }</style>`);
   const g0 = new THREE.Group(); g0.visible = false; scene.add(g0);
   const first = twMeshes.length;
-  const PLZ = 7, NN = 4, RW = 62, GAP = 10, RX0 = 22, RY = 24, RD = 72, RF = RY + RD, RZ = 20;
-  const UH = 28, BH = 26.5, UY = RY + 6, UD = RD - 8, UF = UY + UD, ZT = RZ + 2 + NN * UH + 1, RH = 22, TOPZ = ZT + RH;
-  const CX = 24, CY = 110, CW = 272, CD = 50, CH = 16, CT = PLZ + CH;
-  plateWith(g0, 320, 170, [[16, 16], [304, 16], [16, 154], [304, 154]]);
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const sm = (a, b, v) => { const t = clamp((v - a) / (b - a)); return t * t * (3 - 2 * t); };
+  const lerp = (a, b, t) => a + (b - a) * t;
 
-  // ── one rack per node ──
-  const nodes = [];
-  for (let i = 0; i < NN; i++) {
-    const x0 = RX0 + i * (RW + GAP), grp = new THREE.Group(); grp.userData = { node: i + 1 }; g0.add(grp);
-    rbox(x0 + 3, RY + 3, PLZ, RW - 6, RD - 6, 10, 2, bodyMat, grp);
-    slitsUV(frontUV(x0 + 3, RF - 3, 17), 6, RW - 12, 3.4, 3, 7, grp);
-    rbox(x0, RY, 17, RW, RD, 3, 1, bodyMat, grp);
-    rbox(x0, RY, RZ, RW, 5, ZT - RZ, 1, bodyMat, grp);
-    rbox(x0, RY, RZ, 5, RD, ZT - RZ, 1, bodyMat, grp);
-    rbox(x0 + RW - 5, RY, RZ, 5, RD, ZT - RZ, 1, bodyMat, grp);
-    { const f = sideUV(x0 + RW, RF, ZT); [[10, 30, 12, 50], [42, 62, 12, 50], [10, 30, 64, 102], [42, 62, 64, 102]].forEach(([a, b, c, e]) => slitsUV(f, a, b, 3, c, e, grp)); }
+  // ── page: scroll reel, captions, counter; the figure's own controls are not used ──
+  document.head.insertAdjacentHTML('beforeend', `<style>
+    html, body { height: auto !important; overflow-x: hidden !important; overflow-y: auto !important; }
+    body > canvas { position: fixed !important; inset: 0; z-index: 0; }
+    .ui:not(#credit) { display: none !important; }
+    #credit { z-index: 3; }
+    #reel { position: relative; z-index: 2; height: 1000vh; }
+    .gc-cap { position: fixed; z-index: 3; left: 24px; bottom: 28px; max-width: min(460px, calc(100vw - 48px)); pointer-events: none; }
+    .gc-cap h2 { margin: 0 0 8px; font: 600 clamp(22px, 3vw, 34px)/1.08 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: -.02em; color: var(--ink); text-wrap: balance; }
+    .gc-cap p { margin: 0; color: var(--dim); font-size: 13px; line-height: 1.5; max-width: 52ch; }
+    .gc-cap .k { display: block; margin-bottom: 10px; color: var(--accent); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
+    .gc-cap.swap { animation: gcIn .7s cubic-bezier(.2,.8,.2,1); }
+    @keyframes gcIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    .gc-top { position: fixed; z-index: 3; top: 20px; left: 24px; right: 24px; display: flex; justify-content: space-between; align-items: baseline; pointer-events: none;
+      font: 11px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); }
+    .gc-top b { color: var(--ink); font-weight: 500; }
+    .gc-count { text-align: right; }
+    .gc-count b { display: block; margin-top: 6px; font-size: clamp(30px, 4.4vw, 54px); letter-spacing: -.03em; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); }
+    .gc-count b i { font-style: normal; color: var(--dim); }
+    .gc-count.on b { color: var(--accent); text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 55%, transparent); }
+    .gc-bar { position: fixed; z-index: 3; left: 0; top: 0; height: 2px; width: 100%; transform-origin: 0 50%; transform: scaleX(0); background: var(--accent); pointer-events: none; }
+    .gc-cue { position: fixed; z-index: 3; left: 50%; bottom: 26px; transform: translateX(-50%); color: var(--dim); font: 11px ui-monospace, Menlo, monospace; letter-spacing: .2em; text-transform: uppercase; transition: opacity .4s; pointer-events: none; }
+    .gc-cue.off { opacity: 0; }
+    @media (max-width: 720px) { .gc-cap { left: 16px; right: 16px; bottom: 22px; max-width: none; } .gc-top { left: 16px; right: 16px; top: 16px; } .gc-cue { display: none; } .gc-sub { display: none; } #credit { display: none; } }
+    @media (prefers-reduced-motion: reduce) { .gc-cap.swap { animation: none; } }
+  </style>`);
+  document.body.insertAdjacentHTML('beforeend', `<div id="reel" aria-hidden="true"></div>
+    <div class="gc-bar" id="gc-bar"></div>
+    <div class="gc-top"><span><b>GPU cluster</b><span class="gc-sub"> · 8 nodes × 8 GPUs</span></span><span class="gc-count" id="gc-count">GPUs seated<b>00<i>/64</i></b></span></div>
+    <div class="gc-cap" id="gc-cap" aria-live="polite"><span class="k"></span><h2></h2><p></p></div>
+    <div class="gc-cue" id="gc-cue">Scroll to build</div>`);
+  renderer.domElement.style.touchAction = 'pan-y';
+  controls.enabled = false; controls.enableDamping = false; controls.autoRotate = false;
 
-    // four GPU blades, G1 at the top
-    const blades = [];
-    for (let k = 0; k < NN; k++) {
-      const n = k + 1, z = RZ + 2 + (NN - 1 - k) * UH, top = z + BH, UX = x0 + 6, f = frontUV(UX, UF, top);
-      rbox(UX, UY, z, RW - 12, UD, BH, 1.5, bodyMat, grp);
-      label(`G${n}`, 10, 6, 5, onFront(UX + 19, UF, top - 5.5), grp, { align: 'left' });
-      const leds = [0, 1, 2, 3].map(j => dotFront(UX + 15 + j * 4.2, UF, top - 13, 1.15, grp));
-      frontInset(grp, UX + 31, UF, top - 3, 16, BH - 6, 1.5);
-      slitsUV(f, 33.5, 45, 2.1, 5, BH - 5, grp);
-      const barPts = [f(3, BH - 4.5, 0.12), f(27, BH - 4.5, 0.12)];
-      const barOff = polyLine(barPts, lineMat, grp), barOn = polyLine(barPts, accentLineMat, grp); barOn.visible = false;
-      // power button: protrudes from the blade and pushes in
-      const bx = UX + 3, bz = top - 11, btn = new THREE.Group(); btn.userData = { pressAxis: 'z', pressDepth: 2 }; grp.add(btn);
-      const mat = capMat(); twCaps.push(mat); rbox(bx, UF, bz, 8, 3, 8, 1.5, mat, btn);
-      const gf = frontUV(bx, UF + 3, bz + 8), arc = [];
-      for (let a = 0; a <= 24; a++) { const t = (-50 + a * (280 / 24)) * Math.PI / 180; arc.push(gf(4 + 2 * Math.sin(t), 4.4 - 2 * Math.cos(t), 0.1)); }
-      polyLine(arc, majorMat, btn); polyLine([gf(4, 1.6, 0.1), gf(4, 3.9, 0.1)], majorMat, btn);
-      blades.push({ n, leds, barOff, barOn, btn, mat });
-    }
+  // ── geometry (units: 1 = 5 mm; a 4U server is 88 wide, 150 deep, 34 tall) ──
+  const FZ = 7, SW = 88, SD = 150, SH = 34, NS = 8, NG = 8;
+  const RKW = 110, RKD = 176, RKH = 196, RACKX = [100, 240], RY0 = 24;
+  const slotZ = s => FZ + 10 + s * 40;
+  const SWZ = slotZ(4);
+  const floorPos = j => [20 + (j % 4) * 112, 400 + Math.floor(j / 4) * 190, FZ];
+  const rackPos = j => [RACKX[j >> 2] + 11, RY0 + 14, slotZ(j % 4)];
 
-    // roof: node label, status screen, fan, uplink box for the ring
-    rbox(x0, RY, ZT, RW, RD, RH, 3, bodyMat, grp);
-    label(`NODE ${i + 1}`, 26, 6, 4.4, onFront(x0 + 4 + 13, RF, TOPZ - 5.5), grp, { align: 'left', spacing: 0.4 });
-    slitsUV(frontUV(x0, RF, TOPZ), 40, 56, 2.4, 3, 8, grp);
-    frontInset(grp, x0 + 4, RF, TOPZ - 10, RW - 8, 10, 2);
-    const scr = faceCanvas('front', x0 + 5, RF, TOPZ - 11, RW - 10, 8, 12, grp);
-    const fc = [x0 + RW / 2, RY + 40];
-    const ring = r => Array.from({ length: 64 }, (_, a) => { const t = a / 64 * Math.PI * 2; return W(fc[0] + r * Math.cos(t), fc[1] + r * Math.sin(t), TOPZ + 0.08); });
-    const disc = new THREE.Mesh(new THREE.CircleGeometry(21 * TS, 48), recessMat); disc.rotation.x = -Math.PI / 2; disc.position.copy(W(fc[0], fc[1], TOPZ + 0.05)); grp.add(disc);
-    grp.add(loopL(ring(21), lineMat), loopL(ring(17), lineMat));
-    const fan = new THREE.Group(); fan.position.copy(W(fc[0], fc[1], TOPZ + 0.1)); grp.add(fan);
-    for (let b = 0; b < 7; b++) { const pts = []; for (let s = 0; s <= 10; s++) { const r = 4 + s * 1.3, t = b / 7 * Math.PI * 2 + s * 0.08; pts.push([r * Math.cos(t), r * Math.sin(t), 0]); } polyLine(pts, lineMat, fan); }
-    const hub = new THREE.Mesh(new THREE.CircleGeometry(3 * TS, 24), bodyMat); hub.rotation.x = -Math.PI / 2; hub.position.y = 0.02 * TS; fan.add(hub);
-    rbox(x0 + RW / 2 - 8, RY + 5, TOPZ, 16, 9, 6, 1.5, bodyMat, grp);
-    const upLed = dotFront(x0 + RW / 2, RY + 14, TOPZ + 3, 1.1, grp);
-    const glow = glowPoints([W(x0 + RW / 2, RF + 2, TOPZ - 6)], 0.3); grp.add(glow);
-    nodes.push({ i, x0, cx: x0 + RW / 2, grp, blades, scr, fan, upLed, glow, on: true, util: 0 });
-  }
+  // raised floor: one big plate with a 60 cm tile grid; perforated tiles in the cold aisle
+  plateWith(g0, 480, 780, [[18, 18], [462, 18], [18, 762], [462, 762]]);
+  { const s = []; for (let x = 30; x < 470; x += 120) s.push([[x, 10, FZ + 0.06], [x, 770, FZ + 0.06]]); for (let y = 30; y < 770; y += 120) s.push([[10, y, FZ + 0.06], [470, y, FZ + 0.06]]); seg(s, g0);
+    [[150, 270], [270, 270]].forEach(([x, y]) => slitsUV(topUV(x, y, FZ), 10, 110, 6, 10, 110, g0)); }
 
-  // ── all-reduce ring: node i → node i+1 over the roofs, and a high return arc behind ──
-  const AZ = TOPZ + 6, AY = RY + 9;
-  const links = nodes.map((a, i) => {
-    const b = nodes[(i + 1) % NN];
-    const path = i < NN - 1
-      ? bezier([a.cx + 6, AY, AZ], [a.cx + 18, AY, AZ + 34], [b.cx - 18, AY, AZ + 34], [b.cx - 6, AY, AZ])
-      : bezier([a.cx, AY - 4, AZ], [a.cx + 30, RY - 34, AZ + 92], [nodes[0].cx - 30, RY - 34, AZ + 92], [nodes[0].cx, AY - 4, AZ], 60);
-    const wire = polyLine(path, majorMat, g0), bead = glowPoints([W(...path[0])], 0.22); g0.add(bead);
-    return { a: i, b: (i + 1) % NN, path, cum: cumLen(path), wire, bead };
+  // ── racks: open frame (posts, plinth, cap, back and left panels), vertical cable manager, ToR switch ──
+  const managers = [];
+  RACKX.forEach((x0, k) => {
+    const y0 = RY0;
+    rbox(x0, y0, FZ, RKW, RKD, 8, 2, bodyMat, g0);
+    rbox(x0, y0, FZ, RKW, 4, RKH, 1, bodyMat, g0);
+    rbox(x0, y0, FZ, 4, RKD, RKH, 1, bodyMat, g0);
+    [[x0 + RKW - 6, y0], [x0 + RKW - 6, y0 + RKD - 6], [x0, y0 + RKD - 6]].forEach(([x, y]) => rbox(x, y, FZ, 6, 6, RKH, 1, bodyMat, g0));
+    rbox(x0, y0, FZ + RKH, RKW, RKD, 6, 2, bodyMat, g0);
+    label(`RACK ${'AB'[k]}`, 30, 6, 4.4, onFront(x0 + 22, y0 + RKD, FZ + RKH + 3), g0, { align: 'left', spacing: 0.5 });
+    { const s = []; for (let q = 0; q < 5; q++) { const z = slotZ(q) - 1; s.push([[x0 + RKW - 6, y0 + 6, z], [x0 + RKW - 6, y0 + RKD - 6, z]]); } seg(s, g0); }
+    // cable manager standing in front of the right posts, with fingers
+    rbox(x0 + RKW - 12, y0 + RKD, FZ + 8, 12, 6, RKH - 8, 1.5, bodyMat, g0);
+    { const s = []; for (let z = FZ + 16; z < FZ + RKH - 6; z += 8) s.push([[x0 + RKW - 12, y0 + RKD + 6.1, z], [x0 + RKW - 9, y0 + RKD + 6.1, z]], [[x0 + RKW - 3, y0 + RKD + 6.1, z], [x0 + RKW, y0 + RKD + 6.1, z]]); seg(s, g0); }
+    // top-of-rack switch
+    const sx = x0 + 11, sy = y0 + 14;
+    rbox(sx, sy, SWZ, SW, SD, 10, 1.5, bodyMat, g0);
+    label('TOR-' + 'AB'[k], 16, 5, 3.6, onFront(sx + 9, sy + SD, SWZ + 5), g0, { align: 'left' });
+    const ports = [];
+    for (let q = 0; q < 8; q++) { frontInset(g0, sx + 22 + q * 5.6, sy + SD, SWZ + 7.4, 4.4, 4.4, 0.6); ports.push(dotFront(sx + 24.2 + q * 5.6, sy + SD, SWZ + 1.6, 0.6, g0)); }
+    slitsUV(frontUV(sx, sy + SD, SWZ + 10), 70, 84, 2.2, 2, 8, g0);
+    const swLed = dotFront(sx + 4, sy + SD, SWZ + 5, 1, g0);
+    managers.push({ x0, y0, sx, sy, ports, swLed });
   });
 
-  // ── console in front: loss curve on a top-face screen ──
-  rbox(CX, CY, PLZ, CW, CD, CH, 4, bodyMat, g0);
-  inset(CX + 6, CY + 5, CT, CW - 12, CD - 10, 3, g0);
-  const lossScr = faceCanvas('top', CX + 8, CY + 7, CT, CW - 16, CD - 14, 8, g0);
-  label('LLAMA-3.1-8B · FULL-PARAM · DEEPSPEED ZERO-3 · 4 × 4 GPU', 150, 6, 3.6, onFront(CX + 8 + 75, CY + CD, CT - 5), g0, { align: 'left', spacing: 0.3 });
-  slitsUV(frontUV(CX, CY + CD, CT), 182, CW - 10, 2.6, 3, CH - 3, g0);
-  const haze = hazeAndShadow(g0, 160, 85, 3.4, 1.9);
+  // overhead ladder tray between the racks
+  const TRZ = FZ + RKH + 30, TRY = RY0 + 70;
+  [TRY, TRY + 22].forEach(y => rbox(RACKX[0] + 20, y, TRZ, RACKX[1] + 90 - RACKX[0] - 20, 2, 3, 0.5, bodyMat, g0));
+  { const s = []; for (let x = RACKX[0] + 24; x < RACKX[1] + 90; x += 9) s.push([[x, TRY + 1, TRZ + 3.1], [x, TRY + 23, TRZ + 3.1]]); seg(s, g0, majorMat); }
+  [RACKX[0] + 24, RACKX[1] + 84].forEach(x => [TRY, TRY + 22].forEach(y => polyLine([[x, y + 1, TRZ], [x, y + 1, FZ + RKH + 6]], majorMat, g0)));
+
+  // ── servers ──
+  const ledOnTop = (x, y, z, r, parent) => { const m = new THREE.Mesh(new THREE.CircleGeometry(r * TS, 16), ledOffMat); m.rotation.x = -Math.PI / 2; m.position.copy(W(x, y, z + 0.15)); parent.add(m); return m; };
+  const servers = [];
+  for (let j = 0; j < NS; j++) {
+    const grp = new THREE.Group(); g0.add(grp);
+    // chassis tray, walls, front panel
+    rbox(0, 0, 0, SW, SD, 3, 1.5, bodyMat, grp);
+    rbox(0, 0, 0, 2, SD, SH, 0.5, bodyMat, grp);
+    rbox(SW - 2, 0, 0, 2, SD, SH, 0.5, bodyMat, grp);
+    rbox(0, 0, 0, SW, 2, SH, 0.5, bodyMat, grp);
+    rbox(0, SD - 3, 0, SW, 3, SH, 0.8, bodyMat, grp);
+    slitsUV(sideUV(SW, SD, SH), 12, 40, 2.4, 6, SH - 6, grp);
+    // rear: two PSUs, two CPU heatsinks, DIMM rows
+    rbox(58, 3, 3, 13, 26, 18, 1, bodyMat, grp); rbox(72, 3, 3, 13, 26, 18, 1, bodyMat, grp);
+    [8, 32].forEach(x => { rbox(x, 6, 3, 16, 16, 12, 1, bodyMat, grp); slitsUV(topUV(x, 6, 15), 2, 14, 2, 2, 14, grp); });
+    slitsUV(topUV(4, 24, 3), 2, 50, 1.6, 0, 4, grp, true);
+    // eight x16 slots: connector strips on the board
+    for (let k = 0; k < NG; k++) { const x = 6 + k * 9.6; inset(x - 0.4, 34, 3, 7.8, 56, 0.6, grp); }
+    // fan wall and drive cage behind the front panel
+    rbox(2, 100, 3, SW - 4, 8, 28, 0.8, bodyMat, grp);
+    slitsUV(topUV(2, 100, 31), 4, SW - 8, 3, 1.5, 6.5, grp);
+    rbox(2, 116, 3, SW - 4, 30, 22, 0.8, bodyMat, grp);
+    slitsUV(topUV(2, 116, 25), 4, SW - 8, 10.5, 3, 27, grp);
+    // front panel detail
+    const ff = frontUV(0, SD, SH);
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) { frontInset(grp, 4 + c * 10, SD, SH - 3 - r * 15, 8.6, 13, 0.8); seg([[ff(5.5 + c * 10, 6 + r * 15, 0.12), ff(10.5 + c * 10, 6 + r * 15, 0.12)]], grp); }
+    label(`N${j + 1}`, 10, 6, 5, onFront(48 + 5, SD, SH - 6), grp, { align: 'left' });
+    const leds = [0, 1, 2, 3].map(q => dotFront(50 + q * 4, SD, SH - 13, 1, grp));
+    frontInset(grp, 49, SD, SH - 21, 7, 6, 0.8); frontInset(grp, 59, SD, SH - 21, 7, 6, 0.8);
+    slitsUV(ff, 72, 84, 2.2, 16, 30, grp);
+    { const cx = 79, cz = SH - 7, pts = []; for (let a = 0; a <= 24; a++) { const t = (-50 + a * (280 / 24)) * Math.PI / 180; pts.push([cx + 2.6 * Math.sin(t), SD + 0.12, cz + 2.6 * Math.cos(t)]); } polyLine(pts, majorMat, grp); polyLine([[cx, SD + 0.12, cz + 3], [cx, SD + 0.12, cz]], majorMat, grp); }
+    // lid (hidden until it drops in)
+    const lid = new THREE.Group(); lid.visible = false; grp.add(lid);
+    rbox(0, 0, SH, SW, SD, 2, 1.5, bodyMat, lid);
+    slitsUV(topUV(0, 0, SH + 2), 10, SW - 10, 3, 104, 112, lid);
+    label('8× GPU', 22, 6, 4.4, onTop(20, 130, SH + 2), lid, { align: 'left', spacing: 0.4 });
+    // GPU cards
+    const cards = [];
+    for (let k = 0; k < NG; k++) {
+      const cg = new THREE.Group(); grp.add(cg);
+      const x = 6 + k * 9.6, y = 30, z = 4, w = 7, d = 64, h = 24;
+      rbox(x, y, z, w, d, h, 1, bodyMat, cg);
+      slitsUV(sideUV(x + w, y + d, z + h), 8, 56, 2, 4, h - 4, cg);
+      slitsUV(topUV(x, y, z + h), 2.2, 4.8, 2.6, 8, 52, cg);
+      rbox(x + 1.5, y + 4, z + h, 4, 7, 2.5, 0.6, bodyMat, cg);
+      rbox(x - 0.5, y + d, z - 2, w + 1, 1.4, h + 4, 0.3, bodyMat, cg);
+      const led = ledOnTop(x + 3.5, y + d - 4, z + h, 1.1, cg);
+      cg.visible = false;
+      cards.push({ g: cg, led });
+    }
+    servers.push({ j, grp, lid, cards, leds, from: floorPos(j), to: rackPos(j) });
+  }
+
+  // ── cabling: two NIC links per node, port → forward → manager lane → up → switch port ──
+  const route = (pts, r = 2.4) => {           // rounded corners on an orthogonal path
+    const out = [pts[0]];
+    for (let i = 1; i < pts.length - 1; i++) {
+      const a = pts[i - 1], b = pts[i], c = pts[i + 1];
+      const da = Math.hypot(...b.map((v, q) => v - a[q])), dc = Math.hypot(...c.map((v, q) => v - b[q]));
+      const ra = Math.min(r, da / 2), rc = Math.min(r, dc / 2);
+      const p0 = b.map((v, q) => v + (a[q] - v) * ra / da), p2 = b.map((v, q) => v + (c[q] - v) * rc / dc);
+      for (let s = 0; s <= 6; s++) { const t = s / 6; out.push(p0.map((v, q) => (1 - t) ** 2 * v + 2 * (1 - t) * t * b[q] + t * t * p2[q])); }
+    }
+    out.push(pts[pts.length - 1]); return out;
+  };
+  const cables = [];
+  servers.forEach(sv => {
+    const m = managers[sv.j >> 2], s = sv.j % 4, [sx, sy, sz] = sv.to;
+    for (let p = 0; p < 2; p++) {
+      const idx = s * 2 + p, px = sx + 52.5 + p * 10, pz = sz + SH - 24, fy = sy + SD + 0.3, cy = RY0 + RKD + 6.6;
+      const lane = m.x0 + RKW - 9 + idx * 0.85, spx = m.sx + 24.2 + idx * 5.6, spz = SWZ + 5.2;
+      const pts = route([[px, fy, pz], [px, cy, pz], [lane, cy, pz], [lane, cy, spz], [spx, cy, spz], [spx, fy, spz]]);
+      const off = polyLine(pts, majorMat, g0), on = polyLine(pts, accentLineMat, g0);
+      off.geometry.instanceCount = 0; on.visible = false;
+      const bead = glowPoints([W(...pts[0])], 0.12); g0.add(bead);
+      cables.push({ off, on, n: pts.length - 1, pts, cum: cumLen(pts), bead, ph: Math.random() });
+    }
+  });
+  // uplinks: four links from switch A, up into the tray, across, down into switch B
+  const uplinks = [];
+  for (let q = 0; q < 4; q++) {
+    const a = managers[0], b = managers[1], y = TRY + 6 + q * 3.2, za = SWZ + 10, zt = TRZ + 3.4;
+    const xa = a.sx + 58 + q * 2.2, xb = b.sx + 30 - q * 2.2;
+    const pts = route([[xa, y, za], [xa, y, zt], [xb, y, zt], [xb, y, za]], 5);
+    const off = polyLine(pts, majorMat, g0), on = polyLine(pts, accentLineMat, g0);
+    off.geometry.instanceCount = 0; on.visible = false;
+    const bead = glowPoints([W(...pts[0])], 0.14); g0.add(bead);
+    uplinks.push({ off, on, n: pts.length - 1, pts, cum: cumLen(pts), bead, ph: q / 4 });
+  }
+  const haze = hazeAndShadow(g0, 240, 390, 6, 8);
   creases(first);
 
-  // ── state ──
-  const COMPUTE = 560, REDUCE = 520;
-  const st = { train: false, step: 0, phase: 'idle', t0: 0, hist: [], wait: 0 };
-  const lossAt = s => 0.21 + 2.05 * Math.exp(-s / 700) + 0.05 * Math.exp(-s / 3000) * Math.sin(s * 0.37) + (Math.random() - 0.5) * 0.025;
-  const up = () => nodes.filter(n => n.on).length;
-  const down = () => nodes.filter(n => !n.on).map(n => n.i + 1);
-  const loss = () => (st.hist.length ? st.hist[st.hist.length - 1] : lossAt(0));
+  // ── timeline (T = scroll progress 0 → 1) ──
+  const cardWindow = (j, k) => j === 0 ? [0.07 + k * 0.026, 0.07 + k * 0.026 + 0.03]
+    : (() => { const a = 0.33 + (j - 1) / 7 * 0.11 + k * 0.011; return [a, a + 0.03]; })();
+  const lidWindow = j => [0.53 + j * 0.008, 0.53 + j * 0.008 + 0.035];
+  const moveWindow = j => [0.6 + j * 0.022, 0.6 + j * 0.022 + 0.06];
+  const cableWindow = i => { const a = 0.79 + (i >> 1) * 0.012 + (i & 1) * 0.004; return [a, a + 0.04]; };
+  const POWER = 0.935;
+  const CAPS = [
+    [0, 'One node', 'Eight empty slots.', 'A 4U GPU server with the lid off: power supplies and CPUs at the back, fans and drives at the front, eight PCIe x16 slots in between.'],
+    [0.065, 'Seating', 'The first eight GPUs.', 'Each card drops straight into its x16 slot; its status LED lights once it is seated.'],
+    [0.3, 'Eight nodes', 'Sixty-four GPUs.', 'The same build across eight servers, eight cards each.'],
+    [0.52, 'Racking', 'Lids on, into the racks.', 'Four nodes per rack, slid in on rails under a top-of-rack switch.'],
+    [0.77, 'Cabling', 'Cabled like a real row.', 'Two NIC links per node, dressed through the vertical manager to the switch. Rack-to-rack uplinks ride the overhead ladder tray.'],
+    [POWER - 0.01, 'Power on', '64 GPUs, one fabric.', 'Eight nodes, sixteen node links, four uplinks, all live.'],
+  ];
+  const capEl = document.getElementById('gc-cap'), countEl = document.getElementById('gc-count'), barEl = document.getElementById('gc-bar'), cueEl = document.getElementById('gc-cue');
+  let capIdx = -1, lastCount = -1;
+  function setCap(i) {
+    if (i === capIdx) return; capIdx = i; const [, k, h, p] = CAPS[i];
+    capEl.querySelector('.k').textContent = k; capEl.querySelector('h2').textContent = h; capEl.querySelector('p').textContent = p;
+    capEl.classList.remove('swap'); void capEl.offsetWidth; capEl.classList.add('swap');
+  }
 
-  function drawNode(n) {
-    const { x, P } = n.scr, lit = n.on && st.train, { C, A_ } = screenBg(n.scr, lit, 2);
-    x.textBaseline = 'middle'; x.font = `${4.6 * P}px ${MONO3}`;
-    const w = n.scr.c.width / P;
-    if (!n.on) { x.fillStyle = C.ink; x.fillText('OFFLINE', 3 * P, 4.2 * P); }
-    else if (!st.train) { x.fillStyle = C.ink; x.fillText('IDLE · 4 GPU', 3 * P, 4.2 * P); }
-    else {
-      const stalled = st.phase === 'stall';
-      x.fillStyle = A_; if (theme !== 'light') { x.shadowColor = A_; x.shadowBlur = 0.8 * P; }
-      x.fillText(stalled ? 'WAIT RING' : `GPU ${Math.round(n.util)}%`, 3 * P, 4.2 * P); x.shadowBlur = 0;
-      const bw = 16, bx = w - bw - 3;
-      x.lineWidth = 0.25 * P; x.strokeStyle = A_; x.beginPath(); x.roundRect(bx * P, 2.4 * P, bw * P, 3.4 * P, 1 * P); x.stroke();
-      x.fillStyle = A_; x.beginPath(); x.roundRect(bx * P, 2.4 * P, bw * (stalled ? 0.08 : n.util / 100) * P, 3.4 * P, 1 * P); x.fill();
-    }
-    n.scr.tex.needsUpdate = true;
+  // camera keyframes: target (iso units), distance, azimuth offset, elevation
+  const C0 = [floorPos(0)[0] + 44, floorPos(0)[1] + 70, FZ + 20];
+  const KEYS = [
+    { t: 0.00, tg: C0, d: 3.9, az: 0.32, el: 0.95 },
+    { t: 0.06, tg: C0, d: 3.6, az: 0.22, el: 1.0 },
+    { t: 0.28, tg: C0, d: 3.2, az: -0.18, el: 1.1 },
+    { t: 0.40, tg: [232, 560, 30], d: 9.6, az: 0.05, el: 0.9 },
+    { t: 0.52, tg: [232, 560, 30], d: 9.0, az: -0.05, el: 0.95 },
+    { t: 0.70, tg: [225, 300, 80], d: 11.5, az: 0.0, el: 0.78 },
+    { t: 0.78, tg: [220, 130, 105], d: 8.2, az: -0.1, el: 0.62 },
+    { t: 0.90, tg: [240, 175, 100], d: 6.4, az: 0.3, el: 0.5 },
+    { t: 1.00, tg: [235, 150, 105], d: 8.2, az: -0.12, el: 0.62 },
+  ];
+  const camPos = new THREE.Vector3(), camTg = new THREE.Vector3(), want = new THREE.Vector3(), wantT = new THREE.Vector3();
+  let camInit = false;
+  function shot(T) {
+    let i = 0; while (i < KEYS.length - 2 && T > KEYS[i + 1].t) i++;
+    const A = KEYS[i], B = KEYS[i + 1], f = sm(A.t, B.t, T);
+    const tg = A.tg.map((v, q) => lerp(v, B.tg[q], f)), d = lerp(A.d, B.d, f), az = lerp(A.az, B.az, f), el = lerp(A.el, B.el, f);
+    const k = Math.max(1, 0.95 / persp.aspect);
+    wantT.copy(W(...tg));
+    want.set(Math.sin(Math.PI / 4 + az), el, Math.cos(Math.PI / 4 + az)).normalize().multiplyScalar(d * k).add(wantT);
   }
-  function drawLoss() {
-    const s = lossScr, { x, P } = s, on = st.train || st.step > 0, { C, A_ } = screenBg(s, on, 3);
-    const w = s.c.width / P, h = s.c.height / P, col = on ? A_ : C.ink, glow = on && theme !== 'light';
-    x.textBaseline = 'alphabetic'; x.fillStyle = C.ink; x.font = `${4 * P}px ${MONO3}`;
-    x.fillText('TRAIN LOSS', 6 * P, 8 * P); x.fillText(`STEP ${st.step.toLocaleString('en-US')}`, 6 * P, h * P - 4.5 * P);
-    x.fillStyle = col; if (glow) { x.shadowColor = A_; x.shadowBlur = 1.2 * P; }
-    x.font = `${13 * P}px ${MONO3}`; x.fillText(loss().toFixed(3), 5 * P, 22 * P); x.shadowBlur = 0;
-    const gx = 72, gw = w - gx - 6, gy = 5, gh = h - 10;
-    x.strokeStyle = C.detail; x.lineWidth = 0.2 * P;
-    for (let k = 0; k <= 3; k++) { x.beginPath(); x.moveTo(gx * P, (gy + k * gh / 3) * P); x.lineTo((gx + gw) * P, (gy + k * gh / 3) * P); x.stroke(); }
-    const H = st.hist, n = Math.max(90, H.length), hi = 2.3, lo = 0.1;
-    if (H.length > 1) {
-      x.strokeStyle = col; x.lineWidth = 0.8 * P; x.lineJoin = 'round'; if (glow) { x.shadowColor = A_; x.shadowBlur = 1 * P; }
-      x.beginPath();
-      const stepK = Math.max(1, Math.floor(H.length / 400));
-      for (let k = 0; k < H.length; k += stepK) { const px = gx + (k / (n - 1)) * gw, py = gy + (1 - (H[k] - lo) / (hi - lo)) * gh; k ? x.lineTo(px * P, py * P) : x.moveTo(px * P, py * P); }
-      x.stroke(); x.shadowBlur = 0;
-      const k = H.length - 1, px = gx + (k / (n - 1)) * gw, py = gy + (1 - (H[k] - lo) / (hi - lo)) * gh;
-      x.fillStyle = col; x.beginPath(); x.arc(px * P, py * P, 0.9 * P, 0, Math.PI * 2); x.fill();
-    }
-    x.fillStyle = C.ink; x.font = `${3.2 * P}px ${MONO3}`; x.textAlign = 'right';
-    x.fillText(st.phase === 'stall' ? `RING STALLED · NODE ${down().join(', ')} DOWN` : st.train ? 'ALL-REDUCE · 16 RANKS' : 'READY', (gx + gw) * P, (gy + gh) * P - 1.2 * P);
-    x.textAlign = 'left';
-    s.tex.needsUpdate = true;
+
+  const P = (a, b, t) => a.map((v, q) => lerp(v, b[q], t));
+  function serverPose(sv, T) {
+    const [a, b] = moveWindow(sv.j), t = clamp((T - a) / (b - a)), [fx, fy, fz] = sv.from, [rx, ry, rz] = sv.to, LZ = FZ + 60, pre = ry + 180;
+    const A = [fx, fy, fz], B = [fx, fy, LZ], C = [rx, pre, LZ], D = [rx, pre, rz], E = [rx, ry, rz];
+    if (t < 0.14) return P(A, B, sm(0, 0.14, t));
+    if (t < 0.55) return P(B, C, sm(0.14, 0.55, t));
+    if (t < 0.7) return P(C, D, sm(0.55, 0.7, t));
+    return P(D, E, sm(0.7, 1, t));
   }
-  function readout() {
-    if (active !== 'gc') return;
-    const g = up() * NN, base = `step ${st.step.toLocaleString('en-US')} · loss ${loss().toFixed(2)} · ${g}/16 gpu`;
-    document.getElementById('read').textContent = st.phase === 'stall' ? `stalled · node ${down().join(', ')} down · ${base}` : `${st.train ? 'training' : 'idle'} · ${base}`;
-  }
-  function render() {
-    const any = st.train;
-    nodes.forEach(n => {
-      n.blades.forEach(b => {
-        b.mat.userData.base = n.on ? 0.55 : 0;
-        if (!twFlashes.some(f => f.mats.includes(b.mat))) b.mat.emissiveIntensity = b.mat.userData.base;
-        if (!n.on || !any) b.leds.forEach((l, j) => l.material = n.on && j === 0 ? ledOnMat : ledOffMat);
-        const lit = n.on && any && st.phase === 'compute';
-        b.barOn.visible = lit; b.barOff.visible = !lit;
+
+  function update(T, now) {
+    let seated = 0;
+    servers.forEach(sv => {
+      sv.grp.position.copy(W(...serverPose(sv, T)));
+      let n = 0;
+      sv.cards.forEach((c, k) => {
+        const [a, b] = cardWindow(sv.j, k), t = clamp((T - a) / (b - a));
+        c.g.visible = T > a - 0.02;
+        const e = 1 - (1 - t) ** 3;
+        c.g.position.copy(W(0, 0, (1 - e) * 120));
+        const on = t >= 1; if (on) { n++; seated++; }
+        c.led.material = on ? ledOnMat : ledOffMat;
       });
-      n.upLed.material = n.on && any ? ledOnMat : ledOffMat;
-      n.glow.material.uniforms.intensity.value = n.on && any ? 0.3 : 0;
-      drawNode(n);
+      const [la, lb] = lidWindow(sv.j), lt = clamp((T - la) / (lb - la));
+      sv.lid.visible = T > la; sv.lid.position.copy(W(0, 0, (1 - sm(0, 1, lt)) * 70));
+      const pw = T > POWER + sv.j * 0.004;
+      sv.leds.forEach((l, q) => l.material = pw && (q === 0 || Math.sin(now / 90 + q * 2.1 + sv.j) > 0) ? ledOnMat : ledOffMat);
     });
-    links.forEach(l => {
-      const live = any && nodes[l.a].on && nodes[l.b].on;
-      l.wire.material = live ? accentLineMat : majorMat;
+    const lines = (list, win, pwAt, period) => list.forEach((c, i) => {
+      const [a, b] = win(i), t = clamp((T - a) / (b - a));
+      c.off.geometry.instanceCount = Math.round(t * c.n);
+      const pw = T > pwAt;
+      c.on.visible = pw; c.off.visible = !pw;
+      if (pw) { const u = ((now / period) + c.ph) % 1; moveGlow(c.bead, alongPts(c.pts, c.cum, u), 0.85 * Math.sin(u * Math.PI)); }
+      else c.bead.material.uniforms.intensity.value = 0;
     });
-    drawLoss(); readout();
-  }
-
-  function begin(phase, now) { st.phase = phase; st.t0 = now; render(); }
-  function toggleTrain() {
-    st.train = !st.train; SFX.switch();
-    if (st.train) { tone(110, 0.8, 0.05, { type: 'sawtooth', to: 330 }); begin(up() === NN ? 'compute' : 'stall', performance.now()); }
-    else { st.phase = 'idle'; links.forEach(l => l.bead.material.uniforms.intensity.value = 0); render(); }
-    return true;
-  }
-  function toggleNode(k) {
-    const n = nodes[k - 1]; if (!n) return false;
-    n.on = !n.on; n.blades.forEach(b => flash(b.btn, 110)); SFX.switch();
-    if (n.on) tone(150, 0.5, 0.04, { type: 'sawtooth', to: 380 });
-    if (st.train) { if (!n.on) begin('stall', performance.now()); else if (up() === NN && st.phase === 'stall') begin('compute', performance.now()); }
-    render(); return true;
-  }
-  function reset() { st.step = 0; st.hist = []; render(); return true; }
-
-  function tick(now, dt) {
-    if (st.train) {
-      const el = now - st.t0;
-      if (st.phase === 'compute') {
-        nodes.forEach(n => { n.util += ((88 + Math.random() * 11) - n.util) * Math.min(1, dt * 6); });
-        if (el > COMPUTE) begin('reduce', now);
-      } else if (st.phase === 'reduce') {
-        const t = Math.min(1, el / REDUCE);
-        links.forEach(l => moveGlow(l.bead, alongPts(l.path, l.cum, t), Math.sin(t * Math.PI) * 1.1));
-        nodes.forEach(n => { n.util += (12 - n.util) * Math.min(1, dt * 5); });
-        if (el > REDUCE) {
-          links.forEach(l => l.bead.material.uniforms.intensity.value = 0);
-          const stride = 8; for (let s = 0; s < stride; s++) { st.step++; st.hist.push(lossAt(st.step)); }
-          tap(1800, 0.025, 8);
-          begin(up() === NN ? 'compute' : 'stall', now);
-        }
-      } else if (st.phase === 'stall') {
-        nodes.forEach(n => { n.util += (0 - n.util) * Math.min(1, dt * 3); });
-        if (now - st.wait > 400) { st.wait = now; render(); }
-      }
-      // LEDs: blink while computing; one rank-sweep per step
-      if (st.phase === 'compute') {
-        const sweep = Math.floor((now - st.t0) / (COMPUTE / NN));
-        nodes.forEach(n => n.on && n.blades.forEach((b, k) => b.leds.forEach((l, j) => l.material = (k === sweep || Math.random() < 0.45) ? ledOnMat : ledOffMat)));
-      }
-      if (now - (st.scrT || 0) > 150) { st.scrT = now; nodes.forEach(drawNode); }
+    lines(cables, cableWindow, POWER + 0.02, 1400);
+    lines(uplinks, i => [0.86 + i * 0.01, 0.9 + i * 0.01], POWER + 0.03, 2200);
+    managers.forEach(m => { const pw = T > POWER; m.swLed.material = pw ? ledOnMat : ledOffMat; m.ports.forEach((p, q) => p.material = pw && Math.sin(now / 70 + q * 1.7) > -0.3 ? ledOnMat : ledOffMat); });
+    haze.uniforms.opacity.value = T > POWER ? 0.16 : (T < 0.55 ? seated / 64 * 0.08 : 0);
+    if (seated !== lastCount) {
+      lastCount = seated;
+      countEl.querySelector('b').innerHTML = `${String(seated).padStart(2, '0')}<i>/64</i>`;
+      countEl.classList.toggle('on', seated === 64);
     }
-    nodes.forEach(n => { n.fan.rotation.y -= dt * (n.on ? (st.train ? 9 : 1.2) : 0); });
-    haze.uniforms.opacity.value += ((st.train ? 0.14 : 0) - haze.uniforms.opacity.value) * Math.min(1, dt * 4);
+    let ci = 0; CAPS.forEach((c, i) => { if (T >= c[0]) ci = i; }); setCap(ci);
+    barEl.style.transform = `scaleX(${T})`;
+    cueEl.classList.toggle('off', T > 0.02);
+  }
+
+  function progress() { const h = document.documentElement.scrollHeight - innerHeight; return h > 0 ? clamp(scrollY / h) : 0; }
+  let Ts = 0;
+  function tick(now, dt) {
+    const T = progress();
+    Ts += (T - Ts) * Math.min(1, dt * 7);
+    if (Math.abs(T - Ts) < 1e-4) Ts = T;
+    shot(Ts);
+    if (!camInit) { camPos.copy(want); camTg.copy(wantT); camInit = true; }
+    const k = Math.min(1, dt * 5);
+    camPos.lerp(want, k); camTg.lerp(wantT, k);
+    camera.position.copy(camPos); controls.target.copy(camTg); camera.lookAt(camTg);
+    update(Ts, now);
     tickFlashes(now);
   }
-  function key(e) {
-    if (e.key === ' ' && !e.repeat) return toggleTrain();
-    if (/^[1-4]$/.test(e.key)) { if (!e.repeat) toggleNode(+e.key); return true; }
-    if ((e.key === 'r' || e.key === 'R') && !e.repeat) return reset();
-    return false;
-  }
-  function click(hit) { let o = hit?.object; while (o && !o.userData.node) o = o.parent; if (o) toggleNode(o.userData.node); }
-  function demo() { if (!st.train) toggleTrain(); }
-  themeHooks.push(() => render());
-  render();
-  return { group: g0, key, click, tick, readout, demo,
-    stop: () => { if (st.train) toggleTrain(); },
-    panel: [['Train', 'space', toggleTrain], ['Pull node 3', '3', () => toggleNode(3)], ['Reset steps', 'R', reset]],
-    view: { target: W(160, 80, 105), dist: innerWidth < 720 ? 5.2 : 9.4 },     // the shell scales this up by 1.45 / aspect on tall screens
-    info: '<h2>GPU training cluster</h2><p>Four nodes with four GPUs each, training Llama-3.1-8B with DeepSpeed ZeRO-3. Press <b>space</b> to train: every GPU computes, gradients travel the all-reduce ring over the roofs, and the loss curve on the console drops. Click a node or press 1–4 to pull its power: the synchronous ring stalls until it is back.</p>',
-    hint: 'space trains · click a node or 1–4 to power it · R resets' };
+  return { group: g0, key: () => false, click: () => {}, tick, readout: () => {}, demo: () => {}, stop: () => {},
+    panel: [], view: { target: W(...C0), dist: 2.5 }, info: '', hint: '' };
 })() });
