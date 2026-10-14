@@ -2,8 +2,8 @@ import * as THREE from "three";
 import { C, CanvasPlane, M, clamp01, fontStack, label, plinth, rbox, roundRect, smooth, type Station } from "./kit";
 
 /**
- * IBM–Illinois — the training cluster, built as the reader scrolls. Sixty-four
- * GPUs drop into eight open 4U servers, the lids close, the nodes slide into
+ * IBM–Illinois — the training cluster, built as the reader scrolls. Sixteen
+ * GPUs drop into four open 4U servers, the lids close, the nodes slide into
  * two racks, the cabling is run the way a real row is cabled (two NIC links
  * per node through the vertical manager to the top-of-rack switch, uplinks in
  * the overhead ladder tray) and the cluster powers on. A loss curve draws
@@ -17,8 +17,8 @@ const FZ = 7;
 const SW = 88;
 const SD = 150;
 const SH = 34;
-const NS = 8;
-const NG = 8;
+const NS = 4;
+const NG = 4;
 const RKW = 110;
 const RKD = 176;
 const RKH = 196;
@@ -28,8 +28,9 @@ const slotZ = (s: number) => FZ + 10 + s * 40;
 const SWZ = slotZ(4);
 const TRZ = FZ + RKH + 30;
 const TRY = RY0 + 70;
-const floorPos = (j: number): V3 => [35 + (j % 4) * 100, 250 + Math.floor(j / 4) * 170, FZ];
-const rackPos = (j: number): V3 => [RACKX[j >> 2] + 11, RY0 + 14, slotZ(j % 4)];
+const floorPos = (j: number): V3 => [35 + j * 100, 250, FZ];
+const rackPos = (j: number): V3 => [RACKX[j >> 1] + 11, RY0 + 14, slotZ(2 + (j % 2))];
+const cardX = (k: number) => 6 + k * 19.6;
 
 type V3 = [number, number, number];
 const at = (x: number, y: number, z: number) => new THREE.Vector3(x * S, z * S, y * S);
@@ -241,7 +242,7 @@ export function gpuCluster(): Station {
     part(72, 3, 3, 13, 26, 18, innerMat, grp, E);
     for (const x of [8, 32]) part(x, 6, 3, 16, 16, 12, M.stone, grp, E);
     for (let r = 0; r < 6; r++) part(5 + r * 8.6, 24, 3, 1.4, 6, 4, innerMat, grp);
-    for (let k = 0; k < NG; k++) part(6 + k * 9.6 - 0.4, 34, 3, 7.8, 56, 0.6, innerMat, grp);
+    for (let k = 0; k < NG; k++) part(cardX(k) - 0.4, 34, 3, 16.8, 56, 0.6, innerMat, grp);
     part(2, 100, 3, SW - 4, 8, 28, innerMat, grp, E);
     part(2, 116, 3, SW - 4, 30, 22, innerMat, grp, E);
     const front = serverFace(j + 1);
@@ -258,12 +259,12 @@ export function gpuCluster(): Station {
     const cards = Array.from({ length: NG }, (_, k) => {
       const cg = new THREE.Group();
       grp.add(cg);
-      const x = 6 + k * 9.6, y = 30, z = 4, w = 7, d = 64, h = 24;
+      const x = cardX(k), y = 30, z = 4, w = 16, d = 64, h = 24;
       part(x, y, z, w, d, h, M.clay, cg, E);
       part(x + 0.8, y + 6, z + h, w - 1.6, d - 14, 0.5, M.stone, cg);
-      part(x + 1.5, y + 4, z + h, 4, 7, 2.5, M.ink, cg);
+      part(x + 6, y + 4, z + h, 4, 7, 2.5, M.ink, cg);
       part(x - 0.5, y + d, z - 2, w + 1, 1.4, h + 4, M.steel, cg, { edges: true });
-      const led = part(x + 2.5, y + d - 6, z + h, 2, 2, 0.5, ledOff, cg);
+      const led = part(x + 7, y + d - 6, z + h, 2, 2, 0.5, ledOff, cg);
       cg.visible = false;
       return { g: cg, led };
     });
@@ -284,7 +285,7 @@ export function gpuCluster(): Station {
   };
   const cables: Cable[] = [];
   servers.forEach((sv) => {
-    const m = managers[sv.j >> 2], s = sv.j % 4, [sx, sy, sz] = sv.to;
+    const m = managers[sv.j >> 1], s = sv.j % 2, [sx, sy, sz] = sv.to;
     for (let p = 0; p < 2; p++) {
       const idx = s * 2 + p;
       const px = sx + 52.5 + p * 10, pz = sz + SH - 24, fy = sy + SD + 0.3, cy = RY0 + RKD + 6.6;
@@ -438,7 +439,7 @@ export function gpuCluster(): Station {
 
   const caption = label(
     [
-      { text: "DEEPSPEED ZERO-3 · FULL-PARAMETER TRAINING", font: "mono", size: 30, tracking: 4, color: "#7a776f" },
+      { text: "4 NODES × 4 GPUS · DEEPSPEED ZERO-3", font: "mono", size: 30, tracking: 4, color: "#7a776f" },
       { text: "16 BROWSER WORKERS · 800+ WEBARENA TASKS · 20 h → 3 h", font: "mono", size: 30, tracking: 4, color: C.accent },
     ],
     0.9,
@@ -452,7 +453,7 @@ export function gpuCluster(): Station {
   // ── timeline (T: 0 → 1 across the chapter) ──
   const POWER = 0.93;
   const pose = (sv: (typeof servers)[number], T: number): V3 => {
-    const t = win(T, 0.52 + sv.j * 0.03, 0.08);
+    const t = win(T, 0.52 + sv.j * 0.06, 0.08);
     const [fx, fy] = sv.from, [rx, ry, rz] = sv.to, LZ = FZ + 60, pre = ry + 180;
     const A = sv.from, B: V3 = [fx, fy, LZ], Cc: V3 = [rx, pre, LZ], D: V3 = [rx, pre, rz];
     if (t < 0.14) return lerp3(A, B, smooth(0, 0.14, t));
@@ -473,7 +474,7 @@ export function gpuCluster(): Station {
       for (const sv of servers) {
         sv.grp.position.copy(at(...pose(sv, T)));
         sv.cards.forEach((c, n) => {
-          const a = 0.02 + sv.j * 0.035 + n * 0.012;
+          const a = 0.03 + sv.j * 0.08 + n * 0.03;
           const e = easeOut(win(T, a, 0.06));
           c.g.visible = T > a - 0.01;
           c.g.position.y = (1 - e) * 120 * S;
