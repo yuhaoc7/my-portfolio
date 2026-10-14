@@ -179,4 +179,6 @@ export interface Station {
   focus: THREE.Vector3;
   /** t: seconds, dt: delta, local: 0→1 progress of the reader through this chapter */
   update(t: number, dt: number, local: number): void;
+  /** Optional camera path for this chapter; `target` is in the station's own space. */
+  shot?(local: number): { target: THREE.Vector3; az: number; polar: number; dist: number };
 }

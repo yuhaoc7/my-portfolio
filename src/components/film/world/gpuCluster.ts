@@ -143,6 +143,29 @@ function serverFace(n: number) {
   });
 }
 
+function storageFace(n: number) {
+  return face(SW, SH, 6, (ctx, k) => {
+    ctx.fillStyle = "#33333a";
+    ctx.fillRect(0, 0, SW * k, SH * k);
+    ctx.strokeStyle = "#55555e";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, SW * k - 2, SH * k - 2);
+    for (let r = 0; r < 3; r++)
+      for (let c = 0; c < 6; c++) {
+        ctx.fillStyle = "#26262b";
+        roundRect(ctx, (4 + c * 11) * k, (3 + r * 9.6) * k, 9.6 * k, 8.4 * k, 3);
+        ctx.fill();
+        ctx.fillStyle = "#5a5a63";
+        ctx.fillRect((6 + c * 11) * k, (9 + r * 9.6) * k, 5 * k, 0.8 * k);
+      }
+    ctx.fillStyle = "#d9d6cf";
+    ctx.font = `500 ${4.4 * k}px ${fontStack("mono")}`;
+    ctx.textBaseline = "top";
+    ctx.textAlign = "right";
+    ctx.fillText(`STOR-${n}`, (SW - 4) * k, 4 * k);
+  });
+}
+
 function switchFace(name: string) {
   return face(SW, 10, 8, (ctx, k) => {
     ctx.fillStyle = "#33333a";
@@ -211,6 +234,19 @@ export function gpuCluster(): Station {
   });
   fingers.count = fi;
   model.add(fingers);
+
+  // The lower two slots of each rack hold storage nodes, so the racks read full.
+  const fillerLeds: THREE.Mesh[] = [];
+  RACKX.forEach((x0, r) => {
+    for (let q = 0; q < 2; q++) {
+      const sx = x0 + 11, sy = RY0 + 14, sz = slotZ(q);
+      part(sx, sy, sz, SW, SD, SH, darkMat, model, { shadow: true, edges: true });
+      const f = storageFace(r * 2 + q + 1);
+      f.position.copy(at(sx + SW / 2, sy + SD + 0.15, sz + SH / 2));
+      model.add(f);
+      for (let l = 0; l < 3; l++) fillerLeds.push(part(sx + 74 + l * 4, sy + SD, sz + 3, 1.8, 0.5, 1.8, ledOff, model));
+    }
+  });
 
   // Overhead ladder tray between the racks.
   {
@@ -463,12 +499,42 @@ export function gpuCluster(): Station {
   };
   const cableWin = (i: number) => 0.82 + (i >> 1) * 0.006 + (i & 1) * 0.002;
 
+  // ── camera: skims the floor along the row of open servers while the GPUs drop
+  // in, rides up with the nodes into the racks, then backs off for power-on ──
+  const serverAt = (x: number) => new THREE.Vector3(235 * S - (x + SW / 2) * S, Y + 0.45, -300 * S + (250 + SD / 2) * S);
+  const rackFront = new THREE.Vector3(235 * S - 225 * S, Y + 2.7, -300 * S + (RY0 + RKD) * S);
+  type Key = { l: number; target: THREE.Vector3; az: number; polar: number; dist: number };
+  const keys: Key[] = [
+    { l: 0, target: serverAt(-150), az: 1.35, polar: 1.46, dist: 12 },
+    { l: 0.27, target: serverAt(floorPos(0)[0]), az: 1.22, polar: 1.0, dist: 10 },
+    { l: 0.33, target: serverAt(floorPos(1)[0]), az: 1.17, polar: 1.0, dist: 10 },
+    { l: 0.38, target: serverAt(floorPos(2)[0]), az: 1.12, polar: 1.0, dist: 10 },
+    { l: 0.44, target: serverAt(floorPos(3)[0]), az: 1.02, polar: 1.02, dist: 10.2 },
+    { l: 0.52, target: rackFront.clone().add(new THREE.Vector3(-1.2, -1, 2.6)), az: 0.55, polar: 1.3, dist: 11 },
+    { l: 0.62, target: rackFront, az: 0.15, polar: 1.3, dist: 12.5 },
+    { l: 0.72, target: rackFront.clone().add(new THREE.Vector3(0, 0.6, 0)), az: -0.2, polar: 1.25, dist: 15 },
+    { l: 1, target: rackFront.clone().add(new THREE.Vector3(0, 2.6, -1)), az: -0.5, polar: 1.12, dist: 21 },
+  ];
+
+
+  const shotOut = { target: new THREE.Vector3(), az: 0, polar: 0, dist: 0 };
+
   return {
     group: g,
     focus: new THREE.Vector3(0, 3.8, -1),
+    shot(local) {
+      let n = 0;
+      while (n < keys.length - 2 && local > keys[n + 1].l) n++;
+      const a = keys[n], b = keys[n + 1], u = smooth(a.l, b.l, local);
+      shotOut.target.lerpVectors(a.target, b.target, u);
+      shotOut.az = lerp(a.az, b.az, u);
+      shotOut.polar = lerp(a.polar, b.polar, u);
+      shotOut.dist = lerp(a.dist, b.dist, u);
+      return shotOut;
+    },
     update(t, _dt, local) {
-      const T = clamp01((local - 0.18) / 0.54);
-      const k = smooth(0.05, 0.9, local);
+      const T = clamp01((local - 0.26) / 0.46);
+      const k = smooth(0.3, 0.95, local);
       const powered = T >= POWER;
 
       for (const sv of servers) {
@@ -507,6 +573,7 @@ export function gpuCluster(): Station {
         });
         pulses.instanceMatrix.needsUpdate = true;
       }
+      fillerLeds.forEach((l, q) => (l.material = powered && Math.sin(t * 7 + q * 2.7) > -0.5 ? M.glowGreen : ledOff));
       for (const m of managers) {
         m.swLed.material = powered ? M.glowGreen : ledOff;
         m.ports.forEach((p, q) => (p.material = powered && Math.sin(t * 14 + q * 1.7) > -0.3 ? M.glowAccent : ledOff));

@@ -284,32 +284,40 @@ export class World {
     const max = SHOTS.length - 1;
     const c = Math.min(Math.max(this.chapter, 0), max);
     const i = Math.min(Math.floor(c), max - 1);
-    const f = ease(c - i);
     const A = SHOTS[i];
     const B = SHOTS[i + 1];
+    // Project-to-project moves hold on each set, then fly the gap quickly.
+    const hop = A.station !== undefined && B.station !== undefined && i >= FIRST_STATION_CHAPTER;
+    const f = hop ? ease(Math.min(1, Math.max(0, (c - i - 0.35) / 0.3))) : ease(c - i);
 
-    this.shotTarget(A, this.tmpA);
-    this.shotTarget(B, this.tmpB);
+    // Each end of the blend: a station that flies its own camera path takes over
+    // inside its chapter; otherwise the shot dollies in and orbits with progress.
+    const end = (s: Shot, k: number, out: THREE.Vector3) => {
+      const st = s.station === undefined ? undefined : this.stations[s.station];
+      const local = k >= FIRST_STATION_CHAPTER && s.station !== undefined ? this.locals[s.station] : 0.5;
+      const own = k >= FIRST_STATION_CHAPTER ? st?.shot?.(local) : undefined;
+      if (st && own) {
+        out.copy(own.target).add(st.group.position);
+        return { az: own.az, polar: own.polar, dist: own.dist, own: true };
+      }
+      this.shotTarget(s, out);
+      return { az: s.az + (local - 0.5) * 0.55, polar: s.polar + (0.5 - local) * 0.08, dist: s.dist * (1.12 - local * 0.3), own: false };
+    };
+    const ea = end(A, i, this.tmpA);
+    const eb = end(B, i + 1, this.tmpB);
     const travel = this.tmpA.distanceTo(this.tmpB);
     this.target.lerpVectors(this.tmpA, this.tmpB, f);
 
     const arc = Math.sin(Math.PI * f);
     // Between two projects the camera skims low past the set and swings round,
     // instead of pulling back to a wide shot; overview chapters still pull out.
-    const hop = A.station !== undefined && B.station !== undefined;
-    let dist = lerp(A.dist, B.dist, f) + arc * (hop ? Math.min(14, travel * 0.16) : Math.min(70, travel * 0.55));
-    let polar = lerp(A.polar, B.polar, f) + (hop ? arc * 0.12 : -arc * Math.min(0.25, travel * 0.004));
-    let az = lerp(A.az, B.az, f) + (hop ? arc * 0.6 * (i % 2 ? 1 : -1) : 0);
-    // Inside a project chapter the camera dollies in and orbits as the reader scrolls.
-    const la = i >= FIRST_STATION_CHAPTER && A.station !== undefined ? this.locals[A.station] : 0.5;
-    const lb = i + 1 >= FIRST_STATION_CHAPTER && B.station !== undefined ? this.locals[B.station] : 0.5;
-    const l = lerp(la, lb, f);
-    az += (l - 0.5) * 0.55;
-    dist *= 1.12 - l * 0.3;
-    polar += (0.5 - l) * 0.08;
+    let dist = lerp(ea.dist, eb.dist, f) + arc * (hop ? Math.min(14, travel * 0.16) : Math.min(70, travel * 0.55));
+    let polar = lerp(ea.polar, eb.polar, f) + (hop ? arc * 0.12 : -arc * Math.min(0.25, travel * 0.004));
+    let az = lerp(ea.az, eb.az, f) + (hop ? arc * 0.6 * (i % 2 ? 1 : -1) : 0);
+    const own = (ea.own ? 1 - f : 0) + (eb.own ? f : 0);
     let shift = lerp(A.shift, B.shift, f);
-    az += this.mouse.x * 0.05;
-    polar = Math.min(1.45, Math.max(0.3, polar - this.mouse.y * 0.03));
+    az += this.mouse.x * 0.05 * (1 - own * 0.6);
+    polar = Math.min(1.5, Math.max(0.3, polar - this.mouse.y * 0.03 * (1 - own * 0.6)));
     dist *= lerp(1.45, 1, ease(this.intro));
     az += (1 - ease(this.intro)) * -0.35;
     if (this.mobile) {
