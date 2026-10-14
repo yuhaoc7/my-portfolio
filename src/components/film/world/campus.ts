@@ -64,7 +64,7 @@ export function campus(): Station {
         ctx.fillRect(0, 0, W, H);
         ctx.fillStyle = "rgba(60,20,10,0.12)";
         for (let yy = 0; yy < H; yy += 7) for (let xx = (yy / 7) % 2 ? 0 : 9; xx < W; xx += 18) ctx.fillRect(xx, yy, 16, 1);
-        const top = f.belfry ? 0.62 : 0;
+        const top = f.belfry ? 0.3 : 0;
         const rowH = (h * (1 - top)) / f.rows;
         const colW = w / f.cols;
         for (let r = 0; r < f.rows; r++)
@@ -108,7 +108,7 @@ export function campus(): Station {
         if (f.belfry) {
           const n = 3, bw = w / n;
           for (let i = 0; i < n; i++) {
-            const x = i * bw + bw * 0.22, ww = bw * 0.56, y = h * 0.06, wh = h * 0.5;
+            const x = i * bw + bw * 0.22, ww = bw * 0.56, y = h * 0.04, wh = h * 0.2;
             ctx.fillStyle = lit ? C.accent : "#26222a";
             ctx.beginPath();
             ctx.moveTo(x * k, (y + wh) * k);
@@ -118,7 +118,7 @@ export function campus(): Station {
             ctx.fill();
           }
           ctx.fillStyle = "#dccfb6";
-          ctx.fillRect(0, h * 0.58 * k, W, 2 * k);
+          ctx.fillRect(0, h * 0.27 * k, W, 2 * k);
         }
       });
     draw(false);
@@ -183,7 +183,7 @@ export function campus(): Station {
 
   // ── trees along the paths ──
   const trees = [
-    [124, 196], [236, 196], [104, 292], [256, 292], [36, 196], [324, 196], [40, 300], [320, 300], [30, 70], [330, 80],
+    [104, 300], [256, 300], [36, 196], [324, 196], [36, 296], [324, 296], [30, 70], [330, 80],
   ].map(([x, y], i) => {
     const t = new THREE.Group();
     t.position.copy(at(x, y, 0.5));
@@ -300,7 +300,7 @@ export function campus(): Station {
         r.visible = e > 0;
         r.position.y = roofY[i] + (1 - e) * 2.6;
       });
-      trees.forEach((tr, i) => tr.scale.setScalar(Math.max(0.001, easeOut(win(T, 0.58 + i * 0.015, 0.08)))));
+      trees.forEach((tr, i) => tr.scale.setScalar(Math.max(0.001, 0.8 * easeOut(win(T, 0.58 + i * 0.015, 0.08)))));
       benches.forEach(({ b, lap }, i) => {
         b.scale.setScalar(Math.max(0.001, easeOut(win(T, 0.66 + i * 0.03, 0.06))));
         lap.setOpen(smooth(0, 1, win(T, 0.72 + i * 0.03, 0.06)));
@@ -320,7 +320,7 @@ export function campus(): Station {
         c.visible = T >= 0.93;
         if (!c.visible) return;
         const ph = t * 0.9 + i * 2.1;
-        c.position.y = 2.6 + i * 0.4 + Math.sin(ph) * 0.35;
+        c.position.y = 5.2 + i * 0.5 + Math.sin(ph) * 0.35;
         c.rotation.set(Math.sin(ph * 0.7) * 0.35, t * 0.8 + i, Math.cos(ph * 0.6) * 0.3);
       });
     },

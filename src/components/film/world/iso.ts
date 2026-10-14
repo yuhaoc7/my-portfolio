@@ -167,8 +167,8 @@ export function laptop(I: Iso, x: number, y: number, z: number, parent: THREE.Ob
   g.position.copy(I.at(x, y, z));
   parent.add(g);
   I.solid(0, 0, 0, W, D, H, IM.alu, g);
-  I.part(5, 20, H, W - 10, 20, 0.3, IM.dark, g);
-  I.part(24, 4, H, 18, 12, 0.2, M.stone, g);
+  I.part(5, 5, H, W - 10, 20, 0.3, IM.dark, g);
+  I.part(24, 30, H, 18, 12, 0.2, M.stone, g);
   const lid = new THREE.Group();
   lid.position.copy(I.at(0, 0, H));
   g.add(lid);
