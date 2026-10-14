@@ -28,7 +28,8 @@ const slotZ = (s: number) => FZ + 10 + s * 40;
 const SWZ = slotZ(4);
 const TRZ = FZ + RKH + 30;
 const TRY = RY0 + 70;
-const floorPos = (j: number): V3 => [35 + j * 100, 250, FZ];
+// Node 1 waits at the far (-x) end so the camera fills the row moving forward.
+const floorPos = (j: number): V3 => [35 + (3 - j) * 100, 250, FZ];
 const rackPos = (j: number): V3 => [RACKX[j >> 1] + 11, RY0 + 14, slotZ(2 + (j % 2))];
 const cardX = (k: number) => 6 + k * 19.6;
 
@@ -505,16 +506,18 @@ export function gpuCluster(): Station {
   const rackFront = new THREE.Vector3(235 * S - 225 * S, Y + 2.7, -300 * S + (RY0 + RKD) * S);
   type Key = { l: number; target: THREE.Vector3; az: number; polar: number; dist: number };
   const keys: Key[] = [
-    { l: 0, target: serverAt(-150), az: 1.35, polar: 1.46, dist: 12 },
-    { l: 0.27, target: serverAt(floorPos(0)[0]), az: 1.22, polar: 1.0, dist: 10 },
-    { l: 0.33, target: serverAt(floorPos(1)[0]), az: 1.17, polar: 1.0, dist: 10 },
-    { l: 0.38, target: serverAt(floorPos(2)[0]), az: 1.12, polar: 1.0, dist: 10 },
-    { l: 0.44, target: serverAt(floorPos(3)[0]), az: 1.02, polar: 1.02, dist: 10.2 },
-    { l: 0.52, target: rackFront.clone().add(new THREE.Vector3(-1.2, -1, 2.6)), az: 0.55, polar: 1.3, dist: 11 },
-    { l: 0.62, target: rackFront, az: 0.15, polar: 1.3, dist: 12.5 },
-    { l: 0.72, target: rackFront.clone().add(new THREE.Vector3(0, 0.6, 0)), az: -0.2, polar: 1.25, dist: 15 },
-    { l: 1, target: rackFront.clone().add(new THREE.Vector3(0, 2.6, -1)), az: -0.5, polar: 1.12, dist: 21 },
+    { l: 0, target: serverAt(450), az: -1.05, polar: 1.44, dist: 12 },
+    { l: 0.27, target: serverAt(floorPos(0)[0]), az: -1.15, polar: 1.0, dist: 10 },
+    { l: 0.33, target: serverAt(floorPos(1)[0]), az: -1.12, polar: 1.0, dist: 10 },
+    { l: 0.38, target: serverAt(floorPos(2)[0]), az: -1.08, polar: 1.0, dist: 10 },
+    { l: 0.44, target: serverAt(floorPos(3)[0]), az: -1.0, polar: 1.02, dist: 10.2 },
+    { l: 0.52, target: rackFront.clone().add(new THREE.Vector3(0, -1, 2.6)), az: -0.75, polar: 1.28, dist: 11.5 },
+    { l: 0.62, target: rackFront, az: -0.45, polar: 1.3, dist: 12.5 },
+    { l: 0.72, target: rackFront.clone().add(new THREE.Vector3(0, 0.6, 0)), az: -0.25, polar: 1.25, dist: 15 },
+    { l: 1, target: rackFront.clone().add(new THREE.Vector3(0, 2.6, -1)), az: -0.1, polar: 1.12, dist: 21 },
   ];
+
+
 
 
   const shotOut = { target: new THREE.Vector3(), az: 0, polar: 0, dist: 0 };

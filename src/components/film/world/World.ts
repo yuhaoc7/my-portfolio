@@ -21,16 +21,17 @@ import { retrievalFunnel } from "./retrievalFunnel";
  */
 type Shot = { station?: number; az: number; polar: number; dist: number; shift: number };
 
-// Chapter order matches `chapters` in data/resume.ts.
+// Chapter order matches `chapters` in data/resume.ts. Every project is seen from
+// the -x side so the camera always faces the way it is flying (+x).
 const SHOTS: Shot[] = [
   { station: 2, az: -0.78, polar: 1.3, dist: 30, shift: -0.2 }, // 00 hero — low, close on the GPU cluster
   { az: 1.12, polar: 1.08, dist: 200, shift: -0.22 }, //            01 prologue — pull back: the whole set
   { station: 0, az: -0.55, polar: 1.18, dist: 28, shift: -0.22 }, // 02 education
-  { station: 1, az: 0.55, polar: 1.06, dist: 31, shift: 0.23 }, //   03 TIMAN
+  { station: 1, az: -0.5, polar: 1.06, dist: 31, shift: 0.23 }, //   03 TIMAN
   { station: 2, az: -0.38, polar: 1.18, dist: 29, shift: -0.22 }, //  04 IBM
-  { station: 3, az: 0.42, polar: 1.22, dist: 27, shift: 0.22 }, //   05 visibilityx
+  { station: 3, az: -0.42, polar: 1.22, dist: 27, shift: 0.22 }, //   05 visibilityx
   { station: 4, az: -0.5, polar: 1.14, dist: 31, shift: -0.22 }, //  06 HiABR
-  { station: 5, az: 0.1, polar: 1.3, dist: 29, shift: 0.22 }, //    07 VGI-Bench
+  { station: 5, az: -0.3, polar: 1.3, dist: 29, shift: 0.22 }, //    07 VGI-Bench
   { station: 6, az: -0.32, polar: 1.22, dist: 30, shift: -0.22 }, // 08 PIR-Arena
   { az: -1.1, polar: 0.9, dist: 230, shift: 0 }, //                  09 toolkit
   { az: -0.05, polar: 0.5, dist: 260, shift: 0 }, //                 10 fade out
@@ -41,6 +42,57 @@ const PIN_TEXT = ["UIUC", "TIMAN", "IBM–ILLINOIS", "VISIBILITYX", "HIABR", "VG
 const FIRST_STATION_CHAPTER = 2;
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+type PathKey = { c: number; pos: THREE.Vector3; tgt: THREE.Vector3; aux: THREE.Vector3 };
+
+/**
+ * Monotone cubic Hermite spline (PCHIP) over unevenly spaced keys: velocity
+ * carries smoothly through every key, and no axis overshoots a key, so the
+ * camera never swings past a set and backs up.
+ */
+class FlightPath {
+  private tan: { pos: THREE.Vector3; tgt: THREE.Vector3; aux: THREE.Vector3 }[];
+  constructor(private keys: PathKey[]) {
+    keys.sort((a, b) => a.c - b.c);
+    const n = keys.length;
+    const slope = (f: "pos" | "tgt" | "aux", k: number, q: 0 | 1 | 2) =>
+      (keys[k + 1][f].getComponent(q) - keys[k][f].getComponent(q)) / (keys[k + 1].c - keys[k].c);
+    const tangent = (f: "pos" | "tgt" | "aux", k: number) => {
+      const out = new THREE.Vector3();
+      for (const q of [0, 1, 2] as const) {
+        if (k === 0) out.setComponent(q, slope(f, 0, q));
+        else if (k === n - 1) out.setComponent(q, slope(f, n - 2, q));
+        else {
+          const d0 = slope(f, k - 1, q), d1 = slope(f, k, q);
+          const h0 = keys[k].c - keys[k - 1].c, h1 = keys[k + 1].c - keys[k].c;
+          out.setComponent(q, d0 * d1 <= 0 ? 0 : (3 * (h0 + h1)) / ((2 * h1 + h0) / d0 + (h1 + 2 * h0) / d1));
+        }
+      }
+      return out;
+    };
+    this.tan = keys.map((_, k) => ({ pos: tangent("pos", k), tgt: tangent("tgt", k), aux: tangent("aux", k) }));
+  }
+  eval(c: number, pos: THREE.Vector3, tgt: THREE.Vector3, aux: THREE.Vector3) {
+    const K = this.keys;
+    let k = 0;
+    while (k < K.length - 2 && c > K[k + 1].c) k++;
+    const a = K[k], b = K[k + 1];
+    const h = b.c - a.c;
+    const s = Math.min(1, Math.max(0, (c - a.c) / h));
+    const s2 = s * s, s3 = s2 * s;
+    const h00 = 2 * s3 - 3 * s2 + 1, h10 = s3 - 2 * s2 + s, h01 = -2 * s3 + 3 * s2, h11 = s3 - s2;
+    const one = (f: "pos" | "tgt" | "aux", out: THREE.Vector3) =>
+      out
+        .copy(a[f]).multiplyScalar(h00)
+        .addScaledVector(this.tan[k][f], h10 * h)
+        .addScaledVector(b[f], h01)
+        .addScaledVector(this.tan[k + 1][f], h11 * h);
+    one("pos", pos);
+    one("tgt", tgt);
+    one("aux", aux);
+    pos.y = Math.max(0.5, pos.y);
+  }
+}
 
 /**
  * Dark theme, after the iso-glow skill: a near-black studio, bodies drawn as
@@ -109,6 +161,8 @@ export class World {
   private floorMat!: THREE.ShadowMaterial;
   private themed = new WeakMap<THREE.Material, { color?: THREE.Color; opacity?: number }>();
   private frameNo = 0;
+  private path: FlightPath | null = null;
+  private pathMobile = false;
 
   constructor(canvas: HTMLCanvasElement, opts: { reducedMotion: boolean; mediaBase: string }) {
     this.timeScale = opts.reducedMotion ? 0.3 : 1;
@@ -272,13 +326,70 @@ export class World {
     return s.station === undefined ? out.copy(this.center) : out.copy(this.stations[s.station].focus);
   }
 
+  /** Lay the keyframes of the flight out along the chapter axis. */
+  private buildPath() {
+    const keys: PathKey[] = [];
+    const mob = this.mobile ? 1.35 : 1;
+    const put = (c: number, target: THREE.Vector3, az: number, polar: number, dist: number, shift: number) => {
+      const sp = Math.sin(polar);
+      const d = dist * mob;
+      const pos = new THREE.Vector3(Math.sin(az) * sp * d, Math.cos(polar) * d, Math.cos(az) * sp * d).add(target);
+      keys.push({ c, pos, tgt: target.clone(), aux: new THREE.Vector3(shift, 0, 0) });
+    };
+    SHOTS.forEach((s, k) => {
+      const st = s.station === undefined ? undefined : this.stations[s.station];
+      const tgt = new THREE.Vector3();
+      this.shotTarget(s, tgt);
+      if (k < FIRST_STATION_CHAPTER || !st) {
+        put(k, tgt, s.az, s.polar, s.dist, s.shift);
+        if (k === 0) put(0.3, tgt, s.az + 0.12, s.polar - 0.03, s.dist * 1.08, s.shift);
+        return;
+      }
+      if (st.shot) {
+        // The station flies its own route; local progress maps to ~1.5 chapters.
+        for (let l = 0.2; l <= 0.801; l += 0.05) {
+          const o = st.shot(l);
+          put(k + (l - 0.5) * 1.5, o.target.clone().add(st.group.position), o.az, o.polar, o.dist, s.shift);
+        }
+        return;
+      }
+      // Drift through the set: arrive wide, settle, slide out closer and round.
+      // Truck through the set: the camera slides with the direction of travel
+      // (+x) and eases a little closer, so it is always moving forward.
+      const sp = Math.sin(s.polar);
+      const base = new THREE.Vector3(Math.sin(s.az) * sp, Math.cos(s.polar), Math.cos(s.az) * sp).multiplyScalar(s.dist * mob).add(tgt);
+      const D = s.dist * 0.28 * mob;
+      const toward = tgt.clone().sub(base).setY(0).normalize().multiplyScalar(s.dist * 0.08 * mob);
+      ([-1, 0, 1] as const).forEach((side) => {
+        const pos = base.clone().add(new THREE.Vector3(side * D, -side * s.dist * 0.03, 0)).addScaledVector(toward, side);
+        const aim = tgt.clone().add(new THREE.Vector3(side * D * 0.45, 0, 0));
+        keys.push({ c: k + side * 0.3, pos, tgt: aim, aux: new THREE.Vector3(s.shift, 0, 0) });
+      });
+    });
+    // Mid-flight between two projects: rise and ease back a little with the aim
+    // already on the next set, so the frame is never empty floor.
+    keys.sort((a, b) => a.c - b.c);
+    const mids: PathKey[] = [];
+    for (let k = FIRST_STATION_CHAPTER; k < SHOTS.length - 1; k++) {
+      if (SHOTS[k].station === undefined || SHOTS[k + 1].station === undefined) continue;
+      const exit = keys.filter((q) => q.c < k + 0.5).pop()!;
+      const entry = keys.find((q) => q.c > k + 0.5)!;
+      const pos = exit.pos.clone().lerp(entry.pos, 0.5).add(new THREE.Vector3(0, 4 * mob, 9 * mob));
+      const tgt = exit.tgt.clone().lerp(entry.tgt, 0.85);
+      mids.push({ c: (exit.c + entry.c) / 2, pos, tgt, aux: exit.aux.clone().lerp(entry.aux, 0.5) });
+    }
+    this.path = new FlightPath([...keys, ...mids]);
+    this.pathMobile = this.mobile;
+  }
+
   private frame() {
     const rawDt = Math.min(this.clock.getDelta(), 0.5);
     const dt = Math.min(rawDt, 0.05);
     const t = this.clock.elapsedTime * this.timeScale;
 
-    this.chapter += (this.chapterTarget - this.chapter) * Math.min(rawDt * 2.6, 1);
-    this.mouse.lerp(this.mouseTarget, Math.min(dt * 2.5, 1));
+    // Critically damped follow of the scroll position, frame-rate independent.
+    this.chapter += (this.chapterTarget - this.chapter) * (1 - Math.exp(-rawDt * 4.5));
+    this.mouse.lerp(this.mouseTarget, 1 - Math.exp(-dt * 2.5));
     this.intro += (this.introTarget - this.intro) * Math.min(dt * 0.9, 1);
 
     const max = SHOTS.length - 1;
@@ -286,52 +397,24 @@ export class World {
     const i = Math.min(Math.floor(c), max - 1);
     const A = SHOTS[i];
     const B = SHOTS[i + 1];
-    // Project-to-project moves hold on each set, then fly the gap quickly.
-    const hop = A.station !== undefined && B.station !== undefined && i >= FIRST_STATION_CHAPTER;
-    const f = hop ? ease(Math.min(1, Math.max(0, (c - i - 0.35) / 0.3))) : ease(c - i);
 
-    // Each end of the blend: a station that flies its own camera path takes over
-    // inside its chapter; otherwise the shot dollies in and orbits with progress.
-    const end = (s: Shot, k: number, out: THREE.Vector3) => {
-      const st = s.station === undefined ? undefined : this.stations[s.station];
-      const local = k >= FIRST_STATION_CHAPTER && s.station !== undefined ? this.locals[s.station] : 0.5;
-      const own = k >= FIRST_STATION_CHAPTER ? st?.shot?.(local) : undefined;
-      if (st && own) {
-        out.copy(own.target).add(st.group.position);
-        return { az: own.az, polar: own.polar, dist: own.dist, own: true };
-      }
-      this.shotTarget(s, out);
-      return { az: s.az + (local - 0.5) * 0.55, polar: s.polar + (0.5 - local) * 0.08, dist: s.dist * (1.12 - local * 0.3), own: false };
-    };
-    const ea = end(A, i, this.tmpA);
-    const eb = end(B, i + 1, this.tmpB);
-    const travel = this.tmpA.distanceTo(this.tmpB);
-    this.target.lerpVectors(this.tmpA, this.tmpB, f);
+    // One continuous flight: camera, aim point and framing all ride a single
+    // spline through the whole page, so the move never stops at a chapter.
+    if (!this.path || this.pathMobile !== this.mobile) this.buildPath();
+    const path = this.path!;
+    path.eval(c, this.camera.position, this.target, this.tmpA);
+    let shift = this.tmpA.x;
+    const dist = this.camera.position.distanceTo(this.target);
 
-    const arc = Math.sin(Math.PI * f);
-    // Between two projects the camera skims low past the set and swings round,
-    // instead of pulling back to a wide shot; overview chapters still pull out.
-    let dist = lerp(ea.dist, eb.dist, f) + arc * (hop ? Math.min(14, travel * 0.16) : Math.min(70, travel * 0.55));
-    let polar = lerp(ea.polar, eb.polar, f) + (hop ? arc * 0.12 : -arc * Math.min(0.25, travel * 0.004));
-    let az = lerp(ea.az, eb.az, f) + (hop ? arc * 0.6 * (i % 2 ? 1 : -1) : 0);
-    const own = (ea.own ? 1 - f : 0) + (eb.own ? f : 0);
-    let shift = lerp(A.shift, B.shift, f);
-    az += this.mouse.x * 0.05 * (1 - own * 0.6);
-    polar = Math.min(1.5, Math.max(0.3, polar - this.mouse.y * 0.03 * (1 - own * 0.6)));
-    dist *= lerp(1.45, 1, ease(this.intro));
-    az += (1 - ease(this.intro)) * -0.35;
-    if (this.mobile) {
-      dist *= 1.35;
-      shift = 0;
-    }
-
-    const sp = Math.sin(polar);
-    this.camera.position.set(
-      this.target.x + Math.sin(az) * sp * dist,
-      this.target.y + Math.cos(polar) * dist,
-      this.target.z + Math.cos(az) * sp * dist,
-    );
+    // Intro settles in from further out; the pointer nudges the camera a touch.
+    this.tmpB.subVectors(this.camera.position, this.target).multiplyScalar(lerp(1.45, 1, ease(this.intro)));
+    this.camera.position.copy(this.target).add(this.tmpB);
     this.camera.lookAt(this.target);
+    this.tmpB.setFromMatrixColumn(this.camera.matrixWorld, 0).multiplyScalar(this.mouse.x * dist * 0.03);
+    this.camera.position.add(this.tmpB);
+    this.camera.position.y = Math.max(0.5, this.camera.position.y - this.mouse.y * dist * 0.02);
+    this.camera.lookAt(this.target);
+    if (this.mobile) shift = 0;
     this.camera.setViewOffset(this.w, this.h, shift * this.w, this.mobile ? this.h * 0.24 : 0, this.w, this.h);
 
     // Sun follows the frame so shadows stay crisp in close-ups.
