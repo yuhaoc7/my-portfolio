@@ -1,85 +1,307 @@
 import * as THREE from "three";
-import { C, CanvasPlane, M, fontStack, label, plinth, rbox, roundRect, smooth, type Station } from "./kit";
+import { C, CanvasPlane, M, clamp01, fontStack, label, plinth, rbox, roundRect, smooth, type Station } from "./kit";
 
 /**
- * IBM–Illinois — full-parameter training of Llama-3.1-8B on 4 nodes × 4 GPUs.
- * Racks blink in lock-step with training steps, gradient pulses travel the
- * all-reduce ring between nodes, a loss curve draws itself, and 16 browser
- * workers roll out WebArena trajectories overhead.
+ * IBM–Illinois — the training cluster, built as the reader scrolls. Sixty-four
+ * GPUs drop into eight open 4U servers, the lids close, the nodes slide into
+ * two racks, the cabling is run the way a real row is cabled (two NIC links
+ * per node through the vertical manager to the top-of-rack switch, uplinks in
+ * the overhead ladder tray) and the cluster powers on. A loss curve draws
+ * itself and 16 browser workers roll out WebArena trajectories overhead.
  */
+
+// Model units: 1 = 5 mm. A 4U server is 88 wide, 150 deep, 34 tall.
+// Model axes: x across, y front-to-back (front = +y), z up.
+const S = 0.026;
+const FZ = 7;
+const SW = 88;
+const SD = 150;
+const SH = 34;
+const NS = 8;
+const NG = 8;
+const RKW = 110;
+const RKD = 176;
+const RKH = 196;
+const RACKX = [100, 240];
+const RY0 = 24;
+const slotZ = (s: number) => FZ + 10 + s * 40;
+const SWZ = slotZ(4);
+const TRZ = FZ + RKH + 30;
+const TRY = RY0 + 70;
+const floorPos = (j: number): V3 => [35 + (j % 4) * 100, 250 + Math.floor(j / 4) * 170, FZ];
+const rackPos = (j: number): V3 => [RACKX[j >> 2] + 11, RY0 + 14, slotZ(j % 4)];
+
+type V3 = [number, number, number];
+const at = (x: number, y: number, z: number) => new THREE.Vector3(x * S, z * S, y * S);
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const lerp3 = (a: V3, b: V3, t: number): V3 => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+const easeOut = (t: number) => 1 - (1 - t) ** 3;
+const win = (T: number, a: number, d: number) => clamp01((T - a) / d);
+
+const std = (color: string, roughness = 0.6, metalness = 0.2) => new THREE.MeshStandardMaterial({ color, roughness, metalness });
+const darkMat = std("#2b2b31", 0.5, 0.25);
+const innerMat = std("#45454d", 0.55, 0.3);
+const boardMat = std("#1f2024", 0.7, 0.1);
+const ledOff = new THREE.MeshBasicMaterial({ color: "#3a3a40" });
+const edgeDark = new THREE.LineBasicMaterial({ color: "#6a6a74", transparent: true, opacity: 0.55 });
+const edgeLight = new THREE.LineBasicMaterial({ color: C.ink, transparent: true, opacity: 0.22 });
+
+const geoCache = new Map<string, THREE.BoxGeometry>();
+const edgeCache = new Map<string, THREE.EdgesGeometry>();
+/** A box by its min corner and size in model units. */
+function part(
+  x: number, y: number, z: number, w: number, d: number, h: number,
+  mat: THREE.Material, parent: THREE.Object3D, opts: { shadow?: boolean; edges?: boolean } = {},
+) {
+  const key = `${w}|${d}|${h}`;
+  let geo = geoCache.get(key);
+  if (!geo) geoCache.set(key, (geo = new THREE.BoxGeometry(w * S, h * S, d * S)));
+  const m = new THREE.Mesh(geo, mat);
+  m.position.copy(at(x + w / 2, y + d / 2, z + h / 2));
+  m.castShadow = opts.shadow ?? false;
+  m.receiveShadow = true;
+  if (opts.edges) {
+    let eg = edgeCache.get(key);
+    if (!eg) edgeCache.set(key, (eg = new THREE.EdgesGeometry(geo)));
+    m.add(new THREE.LineSegments(eg, mat === M.clay || mat === M.stone || mat === M.steel ? edgeLight : edgeDark));
+  }
+  parent.add(m);
+  return m;
+}
+
+/** A front-facing canvas drawn in model units; mirrored back so text reads. */
+function face(w: number, h: number, ppu: number, draw: (ctx: CanvasRenderingContext2D, u: number) => void) {
+  const p = new CanvasPlane(Math.round(w * ppu), Math.round(h * ppu), h * S, { transparent: false });
+  p.draw((ctx) => draw(ctx, ppu));
+  p.mesh.scale.x = -1;
+  return p.mesh;
+}
+
+/** Orthogonal path with rounded corners. */
+function route(pts: V3[], r = 2.4): THREE.Vector3[] {
+  const out: V3[] = [pts[0]];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const a = pts[i - 1], b = pts[i], c = pts[i + 1];
+    const da = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+    const dc = Math.hypot(c[0] - b[0], c[1] - b[1], c[2] - b[2]);
+    const ra = Math.min(r, da / 2), rc = Math.min(r, dc / 2);
+    const p0 = lerp3(b, a, ra / da), p2 = lerp3(b, c, rc / dc);
+    for (let s = 0; s <= 6; s++) {
+      const t = s / 6;
+      out.push([0, 1, 2].map((q) => (1 - t) ** 2 * p0[q] + 2 * (1 - t) * t * b[q] + t * t * p2[q]) as V3);
+    }
+  }
+  out.push(pts[pts.length - 1]);
+  return out.map((p) => at(...p));
+}
+
+function serverFace(n: number) {
+  // Drawn in canvas space, which is the model's x mirrored (u' = SW - u).
+  return face(SW, SH, 6, (ctx, k) => {
+    const R = (u: number, v: number, w: number, h: number) => [(SW - u - w) * k, v * k, w * k, h * k] as const;
+    ctx.fillStyle = "#33333a";
+    ctx.fillRect(0, 0, SW * k, SH * k);
+    ctx.strokeStyle = "#55555e";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, SW * k - 2, SH * k - 2);
+    for (let r = 0; r < 2; r++)
+      for (let c = 0; c < 4; c++) {
+        const [x, y, w, h] = R(4 + c * 10, 3 + r * 15, 8.6, 13);
+        ctx.fillStyle = "#26262b";
+        roundRect(ctx, x, y, w, h, 4);
+        ctx.fill();
+        ctx.fillStyle = "#5a5a63";
+        ctx.fillRect(x + 8, y + 18, w - 16, 3);
+      }
+    ctx.fillStyle = "#d9d6cf";
+    ctx.font = `500 ${5 * k}px ${fontStack("mono")}`;
+    ctx.textBaseline = "top";
+    ctx.textAlign = "right";
+    ctx.fillText(`N${n}`, (SW - 49) * k, 3 * k);
+    for (const u of [49, 59]) {
+      const [x, y, w, h] = R(u, 21, 7, 6);
+      ctx.fillStyle = "#18181b";
+      roundRect(ctx, x, y, w, h, 3);
+      ctx.fill();
+    }
+    ctx.fillStyle = "#26262b";
+    for (let i = 0; i < 6; i++) {
+      const [x, y, w, h] = R(72, 16 + i * 2.4, 12, 1.2);
+      ctx.fillRect(x, y, w, h);
+    }
+    const [cx, cy] = [(SW - 79) * k, 7 * k];
+    ctx.strokeStyle = "#9a968e";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 2.6 * k, -Math.PI / 2 + 0.9, -Math.PI / 2 - 0.9 + Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 3 * k);
+    ctx.lineTo(cx, cy);
+    ctx.stroke();
+  });
+}
+
+function switchFace(name: string) {
+  return face(SW, 10, 8, (ctx, k) => {
+    ctx.fillStyle = "#33333a";
+    ctx.fillRect(0, 0, SW * k, 10 * k);
+    ctx.fillStyle = "#d9d6cf";
+    ctx.font = `500 ${3.6 * k}px ${fontStack("mono")}`;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "right";
+    ctx.fillText(name, (SW - 9) * k, 5 * k);
+    for (let q = 0; q < 8; q++) {
+      ctx.fillStyle = "#18181b";
+      roundRect(ctx, (SW - 22 - q * 5.6 - 4.4) * k, 2.6 * k, 4.4 * k, 4.4 * k, 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = "#26262b";
+    for (let i = 0; i < 3; i++) ctx.fillRect(4 * k, (2 + i * 2.2) * k, 12 * k, 1.1 * k);
+  });
+}
+
 export function gpuCluster(): Station {
   const g = new THREE.Group();
-  g.add(plinth(22, 15));
+  g.add(plinth(19, 21));
   const Y = 0.66;
 
-  const rackX = [-4.8, -1.6, 1.6, 4.8];
-  const rackMat = new THREE.MeshStandardMaterial({ color: "#2b2b31", roughness: 0.5, metalness: 0.25 });
-  const bladeMat = new THREE.MeshStandardMaterial({ color: "#4a4a52", roughness: 0.45, metalness: 0.35 });
-  const grilleMat = new THREE.MeshStandardMaterial({ color: "#1b1b1f", roughness: 0.8 });
+  // The model is mirrored in x so the racks' open sides face the camera.
+  const model = new THREE.Group();
+  model.scale.x = -1;
+  model.position.set(235 * S, Y - FZ * S, -300 * S);
+  g.add(model);
 
-  const ledGeo = new THREE.BoxGeometry(0.08, 0.08, 0.04);
-  const ledCount = 4 * 4 * 8;
-  const leds = new THREE.InstancedMesh(ledGeo, new THREE.MeshBasicMaterial({ toneMapped: false }), ledCount);
+  // ── racks: open frame, vertical cable manager, top-of-rack switch ──
+  const fingerGeo = new THREE.BoxGeometry(3 * S, 1.2 * S, 1.2 * S);
+  const fingers = new THREE.InstancedMesh(fingerGeo, innerMat, 2 * 2 * 24);
   const dummy = new THREE.Object3D();
-  let li = 0;
-
-  rackX.forEach((x, r) => {
-    const rack = rbox(2.5, 5.6, 2.3, rackMat, 0.08);
-    rack.position.set(x, Y + 2.8, 0);
-    g.add(rack);
-    // Top cap
-    const cap = rbox(2.6, 0.12, 2.4, M.clay2, 0.04);
-    cap.position.set(x, Y + 5.66, 0);
-    g.add(cap);
-    for (let s = 0; s < 4; s++) {
-      const y = Y + 0.9 + s * 1.2;
-      const blade = rbox(2.2, 1.0, 0.12, bladeMat, 0.04);
-      blade.position.set(x, y, 1.16);
-      const grille = rbox(1.2, 0.62, 0.04, grilleMat, 0.02);
-      grille.position.set(x - 0.35, y, 1.23);
-      g.add(blade, grille);
-      for (let k = 0; k < 8; k++) {
-        dummy.position.set(x + 0.42 + (k % 4) * 0.16, y + (k < 4 ? 0.14 : -0.14), 1.25);
+  let fi = 0;
+  const managers = RACKX.map((x0, k) => {
+    const y0 = RY0;
+    part(x0, y0, FZ, RKW, RKD, 8, darkMat, model, { shadow: true, edges: true });
+    part(x0, y0, FZ, RKW, 4, RKH, darkMat, model, { shadow: true, edges: true });
+    part(x0, y0, FZ, 4, RKD, RKH, darkMat, model, { shadow: true, edges: true });
+    for (const [x, y] of [[x0 + RKW - 6, y0], [x0 + RKW - 6, y0 + RKD - 6], [x0, y0 + RKD - 6]])
+      part(x, y, FZ, 6, 6, RKH, darkMat, model, { shadow: true, edges: true });
+    part(x0, y0, FZ + RKH, RKW, RKD, 6, darkMat, model, { shadow: true, edges: true });
+    for (let q = 0; q < 5; q++) part(x0 + RKW - 9, y0 + 6, slotZ(q) - 2, 3, RKD - 12, 1.5, innerMat, model);
+    part(x0 + RKW - 12, y0 + RKD, FZ + 8, 12, 6, RKH - 8, darkMat, model, { shadow: true, edges: true });
+    for (let z = FZ + 16; z < FZ + RKH - 6 && fi < fingers.count - 1; z += 8)
+      for (const x of [x0 + RKW - 12, x0 + RKW - 3]) {
+        dummy.position.copy(at(x + 1.5, y0 + RKD + 6.6, z));
         dummy.updateMatrix();
-        leds.setMatrixAt(li, dummy.matrix);
-        leds.setColorAt(li, new THREE.Color(C.green));
-        li++;
+        fingers.setMatrixAt(fi++, dummy.matrix);
       }
-    }
-    const tag = label([{ text: `NODE ${r + 1}`, font: "mono", size: 34, tracking: 5, color: "#ffffff" }], 0.32, { pxW: 300, align: "center" });
+    const tag = label([{ text: `RACK ${"AB"[k]}`, font: "mono", size: 40, tracking: 6, color: "#ffffff" }], 5 * S, { pxW: 360 });
     tag.mesh.userData.billboard = false;
-    tag.mesh.position.set(x, Y + 5.3, 1.17);
-    g.add(tag.mesh);
-  });
-  g.add(leds);
+    tag.mesh.scale.x = -1;
+    tag.mesh.position.copy(at(x0 + 50, y0 + RKD + 0.3, FZ + RKH + 3));
+    model.add(tag.mesh);
 
-  // All-reduce ring: arcs between neighbouring racks + a return arc behind.
-  const ringCurves: THREE.Curve<THREE.Vector3>[] = [];
-  const cableMat = new THREE.MeshStandardMaterial({ color: C.ink, roughness: 0.6 });
-  for (let i = 0; i < 4; i++) {
-    let curve: THREE.Curve<THREE.Vector3>;
-    if (i < 3) {
-      const a = new THREE.Vector3(rackX[i], Y + 5.75, 0.5);
-      const b = new THREE.Vector3(rackX[i + 1], Y + 5.75, 0.5);
-      const m = a.clone().add(b).multiplyScalar(0.5);
-      m.y += 1.1;
-      curve = new THREE.QuadraticBezierCurve3(a, m, b);
-    } else {
-      curve = new THREE.CubicBezierCurve3(
-        new THREE.Vector3(rackX[3], Y + 5.75, -0.6),
-        new THREE.Vector3(rackX[3] + 1.5, Y + 8.4, -1.6),
-        new THREE.Vector3(rackX[0] - 1.5, Y + 8.4, -1.6),
-        new THREE.Vector3(rackX[0], Y + 5.75, -0.6),
-      );
+    const sx = x0 + 11, sy = y0 + 14;
+    part(sx, sy, SWZ, SW, SD, 10, darkMat, model, { shadow: true, edges: true });
+    const sf = switchFace(`TOR-${"AB"[k]}`);
+    sf.position.copy(at(sx + SW / 2, sy + SD + 0.15, SWZ + 5));
+    model.add(sf);
+    const ports = Array.from({ length: 8 }, (_, q) => part(sx + 23.4 + q * 5.6, sy + SD, SWZ + 1.2, 1.6, 0.4, 0.8, ledOff, model));
+    const swLed = part(sx + 3, sy + SD, SWZ + 4, 2, 0.4, 2, ledOff, model);
+    return { x0, sx, ports, swLed };
+  });
+  fingers.count = fi;
+  model.add(fingers);
+
+  // Overhead ladder tray between the racks.
+  {
+    const x0 = RACKX[0] + 20, len = RACKX[1] + 90 - x0;
+    for (const y of [TRY, TRY + 22]) part(x0, y, TRZ, len, 2, 3, darkMat, model, { shadow: true, edges: true });
+    const rungs = Math.floor((len - 8) / 9);
+    const rung = new THREE.InstancedMesh(new THREE.BoxGeometry(1.2 * S, 0.8 * S, 20 * S), innerMat, rungs);
+    for (let i = 0; i < rungs; i++) {
+      dummy.position.copy(at(x0 + 4 + i * 9, TRY + 12, TRZ + 1.5));
+      dummy.updateMatrix();
+      rung.setMatrixAt(i, dummy.matrix);
     }
-    ringCurves.push(curve);
-    const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 48, 0.07, 10), cableMat);
-    tube.castShadow = true;
-    g.add(tube);
+    model.add(rung);
+    for (const x of [x0 + 4, x0 + len - 6]) for (const y of [TRY, TRY + 22]) part(x, y, FZ + RKH + 6, 1, 1, TRZ - FZ - RKH - 6, innerMat, model);
   }
-  const P = 28;
-  const pulses = new THREE.InstancedMesh(new THREE.SphereGeometry(0.16, 16, 12), M.glowAccent, P);
-  g.add(pulses);
+
+  // ── servers ──
+  const servers = Array.from({ length: NS }, (_, j) => {
+    const grp = new THREE.Group();
+    model.add(grp);
+    const E = { shadow: true, edges: true };
+    part(0, 0, 0, SW, SD, 3, darkMat, grp, E);
+    part(0, 0, 0, 2, SD, SH, darkMat, grp, E);
+    part(SW - 2, 0, 0, 2, SD, SH, darkMat, grp, E);
+    part(0, 0, 0, SW, 2, SH, darkMat, grp, E);
+    part(0, SD - 3, 0, SW, 3, SH, darkMat, grp, E);
+    part(2, 2, 3, SW - 4, 96, 0.4, boardMat, grp);
+    part(58, 3, 3, 13, 26, 18, innerMat, grp, E);
+    part(72, 3, 3, 13, 26, 18, innerMat, grp, E);
+    for (const x of [8, 32]) part(x, 6, 3, 16, 16, 12, M.stone, grp, E);
+    for (let r = 0; r < 6; r++) part(5 + r * 8.6, 24, 3, 1.4, 6, 4, innerMat, grp);
+    for (let k = 0; k < NG; k++) part(6 + k * 9.6 - 0.4, 34, 3, 7.8, 56, 0.6, innerMat, grp);
+    part(2, 100, 3, SW - 4, 8, 28, innerMat, grp, E);
+    part(2, 116, 3, SW - 4, 30, 22, innerMat, grp, E);
+    const front = serverFace(j + 1);
+    front.position.copy(at(SW / 2, SD + 0.15, SH / 2));
+    grp.add(front);
+    const leds = [0, 1, 2, 3].map((q) => part(50 + q * 4, SD, SH - 14, 1.8, 0.5, 1.8, ledOff, grp));
+
+    const lid = new THREE.Group();
+    lid.visible = false;
+    grp.add(lid);
+    part(0, 0, SH, SW, SD, 2, darkMat, lid, E);
+    part(10, 104, SH + 2, SW - 20, 8, 0.2, innerMat, lid);
+
+    const cards = Array.from({ length: NG }, (_, k) => {
+      const cg = new THREE.Group();
+      grp.add(cg);
+      const x = 6 + k * 9.6, y = 30, z = 4, w = 7, d = 64, h = 24;
+      part(x, y, z, w, d, h, M.clay, cg, E);
+      part(x + 0.8, y + 6, z + h, w - 1.6, d - 14, 0.5, M.stone, cg);
+      part(x + 1.5, y + 4, z + h, 4, 7, 2.5, M.ink, cg);
+      part(x - 0.5, y + d, z - 2, w + 1, 1.4, h + 4, M.steel, cg, { edges: true });
+      const led = part(x + 2.5, y + d - 6, z + h, 2, 2, 0.5, ledOff, cg);
+      cg.visible = false;
+      return { g: cg, led };
+    });
+    return { j, grp, lid, cards, leds, from: floorPos(j), to: rackPos(j) };
+  });
+
+  // ── cabling: two NIC links per node, port → forward → manager lane → up → switch port ──
+  type Cable = { mesh: THREE.Mesh; curve: THREE.CatmullRomCurve3; total: number; ph: number };
+  const cableOff = std(C.ink, 0.6, 0.1);
+  const cableOn = new THREE.MeshBasicMaterial({ color: C.accent, toneMapped: false });
+  const makeCable = (pts: THREE.Vector3[], ph: number): Cable => {
+    const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
+    const tube = new THREE.TubeGeometry(curve, Math.max(64, pts.length * 4), 0.028, 6);
+    const mesh = new THREE.Mesh(tube, cableOff);
+    mesh.castShadow = true;
+    model.add(mesh);
+    return { mesh, curve, total: tube.index!.count, ph };
+  };
+  const cables: Cable[] = [];
+  servers.forEach((sv) => {
+    const m = managers[sv.j >> 2], s = sv.j % 4, [sx, sy, sz] = sv.to;
+    for (let p = 0; p < 2; p++) {
+      const idx = s * 2 + p;
+      const px = sx + 52.5 + p * 10, pz = sz + SH - 24, fy = sy + SD + 0.3, cy = RY0 + RKD + 6.6;
+      const lane = m.x0 + RKW - 9 + idx * 0.85, spx = m.sx + 24.2 + idx * 5.6, spz = SWZ + 5.2;
+      cables.push(makeCable(route([[px, fy, pz], [px, cy, pz], [lane, cy, pz], [lane, cy, spz], [spx, cy, spz], [spx, fy, spz]]), Math.random()));
+    }
+  });
+  const uplinks: Cable[] = [];
+  for (let q = 0; q < 4; q++) {
+    const y = TRY + 6 + q * 3.2, za = SWZ + 10, zt = TRZ + 3.4;
+    const xa = managers[0].sx + 58 + q * 2.2, xb = managers[1].sx + 30 - q * 2.2;
+    uplinks.push(makeCable(route([[xa, y, za], [xa, y, zt], [xb, y, zt], [xb, y, za]], 5), q / 4));
+  }
+  const all = [...cables, ...uplinks];
+  const pulses = new THREE.InstancedMesh(new THREE.SphereGeometry(0.06, 10, 8), M.glowAccent, all.length);
+  pulses.count = 0;
+  model.add(pulses);
 
   // Loss curve panel
   const lossPanel = rbox(5.2, 3.3, 0.16, M.clay, 0.08);
@@ -136,7 +358,7 @@ export function gpuCluster(): Station {
 
   // 16 browser workers (WebArena rollouts)
   const browsers = new THREE.Group();
-  browsers.position.set(0, Y + 11.2, -2.2);
+  browsers.position.set(0, Y + 12, -5);
   g.add(browsers);
   const variants = [0, 1, 2, 3].map((v) => {
     const c = new CanvasPlane(512, 340, 1);
@@ -216,47 +438,78 @@ export function gpuCluster(): Station {
 
   const caption = label(
     [
-      { text: "4 NODES × 4 GPUS · DEEPSPEED ZERO-3", font: "mono", size: 30, tracking: 4, color: "#7a776f" },
+      { text: "DEEPSPEED ZERO-3 · FULL-PARAMETER TRAINING", font: "mono", size: 30, tracking: 4, color: "#7a776f" },
       { text: "16 BROWSER WORKERS · 800+ WEBARENA TASKS · 20 h → 3 h", font: "mono", size: 30, tracking: 4, color: C.accent },
     ],
     0.9,
     { pxW: 1400 },
   );
-  caption.mesh.position.set(0, Y + 0.02, 6.3);
+  caption.mesh.position.set(0, Y + 0.02, 9.2);
   caption.mesh.rotation.x = -Math.PI / 2;
   caption.mesh.userData.billboard = false;
   g.add(caption.mesh);
 
-  const green = new THREE.Color(C.green);
-  const amber = new THREE.Color(C.accent);
-  const off = new THREE.Color("#3a3a40");
-  const tmp = new THREE.Color();
+  // ── timeline (T: 0 → 1 across the chapter) ──
+  const POWER = 0.93;
+  const pose = (sv: (typeof servers)[number], T: number): V3 => {
+    const t = win(T, 0.52 + sv.j * 0.03, 0.08);
+    const [fx, fy] = sv.from, [rx, ry, rz] = sv.to, LZ = FZ + 60, pre = ry + 180;
+    const A = sv.from, B: V3 = [fx, fy, LZ], Cc: V3 = [rx, pre, LZ], D: V3 = [rx, pre, rz];
+    if (t < 0.14) return lerp3(A, B, smooth(0, 0.14, t));
+    if (t < 0.55) return lerp3(B, Cc, smooth(0.14, 0.55, t));
+    if (t < 0.7) return lerp3(Cc, D, smooth(0.55, 0.7, t));
+    return lerp3(D, sv.to, smooth(0.7, 1, t));
+  };
+  const cableWin = (i: number) => 0.82 + (i >> 1) * 0.006 + (i & 1) * 0.002;
 
   return {
     group: g,
-    focus: new THREE.Vector3(0, 5.4, 0),
+    focus: new THREE.Vector3(0, 3.8, -1),
     update(t, _dt, local) {
+      const T = clamp01((local - 0.18) / 0.54);
       const k = smooth(0.05, 0.9, local);
-      // LEDs: a training step sweeps across all 16 GPUs
-      const step = (t * 1.6) % 1;
-      for (let i = 0; i < ledCount; i++) {
-        const gpu = Math.floor(i / 8);
-        const on = Math.sin(t * 9 + i * 1.7) > -0.2;
-        const sweep = Math.abs(step - gpu / 16) < 0.08;
-        tmp.copy(sweep ? amber : on ? green : off);
-        leds.setColorAt(i, tmp);
-      }
-      if (leds.instanceColor) leds.instanceColor.needsUpdate = true;
+      const powered = T >= POWER;
 
-      for (let i = 0; i < P; i++) {
-        const c = ringCurves[i % 4];
-        const f = (t * 0.45 + i / P) % 1;
-        dummy.position.copy(c.getPointAt(f));
-        dummy.scale.setScalar(0.7 + 0.5 * Math.sin(f * Math.PI));
-        dummy.updateMatrix();
-        pulses.setMatrixAt(i, dummy.matrix);
+      for (const sv of servers) {
+        sv.grp.position.copy(at(...pose(sv, T)));
+        sv.cards.forEach((c, n) => {
+          const a = 0.02 + sv.j * 0.035 + n * 0.012;
+          const e = easeOut(win(T, a, 0.06));
+          c.g.visible = T > a - 0.01;
+          c.g.position.y = (1 - e) * 120 * S;
+          c.led.material = e >= 1 ? M.glowGreen : ledOff;
+        });
+        const lt = win(T, 0.43 + sv.j * 0.008, 0.04);
+        sv.lid.visible = lt > 0;
+        sv.lid.position.y = (1 - smooth(0, 1, lt)) * 70 * S;
+        const on = powered && T >= POWER + sv.j * 0.004;
+        sv.leds.forEach((l, q) => (l.material = on && (q === 0 || Math.sin(t * 11 + q * 2.1 + sv.j) > 0) ? M.glowGreen : ledOff));
       }
-      pulses.instanceMatrix.needsUpdate = true;
+
+      const reveal = (c: Cable, a: number, d: number) => {
+        const r = win(T, a, d);
+        c.mesh.visible = r > 0;
+        c.mesh.geometry.setDrawRange(0, Math.floor((r * c.total) / 6) * 6);
+        c.mesh.material = powered ? cableOn : cableOff;
+      };
+      cables.forEach((c, i) => reveal(c, cableWin(i), 0.04));
+      uplinks.forEach((c, i) => reveal(c, 0.86 + i * 0.008, 0.04));
+
+      pulses.count = powered ? all.length : 0;
+      if (powered) {
+        all.forEach((c, i) => {
+          const u = (t * (i < cables.length ? 0.7 : 0.45) + c.ph) % 1;
+          dummy.position.copy(c.curve.getPointAt(u));
+          dummy.scale.setScalar(0.6 + 0.6 * Math.sin(u * Math.PI));
+          dummy.updateMatrix();
+          pulses.setMatrixAt(i, dummy.matrix);
+        });
+        pulses.instanceMatrix.needsUpdate = true;
+      }
+      for (const m of managers) {
+        m.swLed.material = powered ? M.glowGreen : ledOff;
+        m.ports.forEach((p, q) => (p.material = powered && Math.sin(t * 14 + q * 1.7) > -0.3 ? M.glowAccent : ledOff));
+      }
 
       const lk = Math.round(k * 120);
       if (lk !== lastLoss) {
@@ -274,8 +527,9 @@ export function gpuCluster(): Station {
         bars[i].position.x = -1 + prog;
         pane.position.z = Math.sin(t * 0.6 + s) * 0.15;
       });
-      browsers.position.y = 0.66 + 11.2 - (1 - smooth(0.15, 0.55, local)) * 2.5;
-      browsers.scale.setScalar(0.75 + 0.25 * smooth(0.15, 0.55, local));
+      const bk = smooth(0.6, 0.8, local);
+      browsers.position.y = Y + 12 - (1 - bk) * 2;
+      browsers.scale.setScalar(0.62 + 0.18 * bk);
     },
   };
 }
