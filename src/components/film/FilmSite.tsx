@@ -31,6 +31,28 @@ export default function FilmSite() {
   const lenisRef = useRef<Lenis | null>(null);
   const [active, setActive] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [dark, setDark] = useState(false);
+  const sceneRef = useRef<import("./world/World").World | null>(null);
+
+  // Theme: the viewer's saved choice, else the system setting.
+  useEffect(() => {
+    let saved: string | null = null;
+    try {
+      saved = localStorage.getItem("film-theme");
+    } catch {}
+    setDark(saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches);
+  }, []);
+  useEffect(() => {
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    sceneRef.current?.setTheme(dark);
+  }, [dark]);
+  const toggleTheme = () =>
+    setDark((d) => {
+      try {
+        localStorage.setItem("film-theme", d ? "light" : "dark");
+      } catch {}
+      return !d;
+    });
 
   useEffect(() => {
     const el = root.current!;
@@ -40,11 +62,14 @@ export default function FilmSite() {
     let scene: import("./world/World").World | null = null;
 
     // --- WebGL scene (loaded lazily so the first paint stays light) ---
-    const sceneReady = import("./world/World").then(({ World }) => {
+    import("./world/World").then(({ World }) => {
       if (disposed || !canvas.current) return;
       try {
         scene = new World(canvas.current, { reducedMotion: reduced, mediaBase: "/media/vgi" });
+        sceneRef.current = scene;
+        scene.setTheme(document.documentElement.dataset.theme === "dark");
         scene.start();
+        scene.fadeIn();
       } catch {
         // No WebGL: the CSS gradient fallback behind the canvas carries the page.
         el.classList.add("no-webgl");
@@ -57,7 +82,6 @@ export default function FilmSite() {
     const raf = (time: number) => lenis.raf(time * 1000);
     gsap.ticker.add(raf);
     gsap.ticker.lagSmoothing(0);
-    lenis.stop();
 
     const sections = Array.from(el.querySelectorAll<HTMLElement>("[data-chapter]"));
     let lastActive = -1;
@@ -135,33 +159,9 @@ export default function FilmSite() {
 
     // --- Choreography ---
     const ctx = gsap.context(() => {
-      const intro = gsap.timeline({ paused: true });
-      const counter = { v: 0 };
-
-      if (reduced) {
-        gsap.set(".preloader", { autoAlpha: 0 });
-      } else {
-        intro
-          .to(counter, {
-            v: 100,
-            duration: 1.5,
-            ease: "power2.inOut",
-            onUpdate: () => {
-              const n = el.querySelector(".pre-count");
-              if (n) n.textContent = String(Math.round(counter.v)).padStart(3, "0");
-            },
-          })
-          .to(".pre-count, .pre-label", { yPercent: -110, duration: 0.6, ease: "power3.in", stagger: 0.05 })
-          .to(".pre-bar-top", { yPercent: -100, duration: 1.2, ease: "expo.inOut" }, "-=0.1")
-          .to(".pre-bar-bottom", { yPercent: 100, duration: 1.2, ease: "expo.inOut" }, "<")
-          .set(".preloader", { autoAlpha: 0 });
-      }
-
-      intro.call(() => {
-        scene?.fadeIn();
-        lenis.start();
-        setLoaded(true);
-      }, [], reduced ? 0 : 2.3);
+      // No preloader: the page and the scene start at once.
+      lenis.start();
+      setLoaded(true);
 
       // Hero title: characters rise out of a mask.
       el.querySelectorAll<HTMLElement>("[data-hero-split]").forEach((line, i) => {
@@ -177,12 +177,12 @@ export default function FilmSite() {
               duration: reduced ? 0 : 1.4,
               ease: "expo.out",
               stagger: 0.045,
-              delay: reduced ? 0 : 2.35 + i * 0.12,
+              delay: reduced ? 0 : 0.15 + i * 0.12,
             });
           },
         });
       });
-      gsap.from("[data-hero-fade]", { autoAlpha: 0, y: 20, duration: 1.2, ease: "power3.out", delay: reduced ? 0 : 2.9, stagger: 0.1 });
+      gsap.from("[data-hero-fade]", { autoAlpha: 0, y: 20, duration: 1.2, ease: "power3.out", delay: reduced ? 0 : 0.6, stagger: 0.1 });
 
       // Hero recedes like a dolly-out as the first scene arrives.
       if (!reduced) {
@@ -282,10 +282,6 @@ export default function FilmSite() {
         });
       }
 
-      // Start the intro once fonts are in and the scene has had a chance to compile.
-      Promise.all([document.fonts?.ready, sceneReady]).finally(() => {
-        if (!disposed) intro.play();
-      });
     }, el);
 
     onScroll();
@@ -314,20 +310,6 @@ export default function FilmSite() {
     <div ref={root} className={`film ${loaded ? "is-loaded" : ""}`}>
       <canvas ref={canvas} className="film-canvas" aria-hidden="true" />
 
-      {/* Preloader — letterbox bars part like a curtain */}
-      <div className="preloader" aria-hidden="true">
-        <div className="pre-bar pre-bar-top" />
-        <div className="pre-bar pre-bar-bottom" />
-        <div className="pre-center">
-          <div className="pre-mask">
-            <span className="pre-label mono">Yuhao Cheng — reel 2026</span>
-          </div>
-          <div className="pre-mask">
-            <span className="pre-count">000</span>
-          </div>
-        </div>
-      </div>
-
       {/* HUD */}
       <header className="hud hud-top">
         <a href="#top" className="hud-mark" data-cursor="link" aria-label="Back to top">
@@ -349,6 +331,15 @@ export default function FilmSite() {
           <a href="/photography" className="ulink hide-sm">
             Photography
           </a>
+          <button
+            type="button"
+            className="hud-theme"
+            onClick={toggleTheme}
+            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+            aria-pressed={dark}
+          >
+            <span aria-hidden="true">{dark ? "☀" : "☾"}</span>
+          </button>
           <a href="#contact" className="hud-cta">
             Contact
           </a>

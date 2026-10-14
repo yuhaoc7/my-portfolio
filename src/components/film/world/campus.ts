@@ -18,6 +18,10 @@ export function campus(): Station {
 
     const positions = geometry.getAttribute("position");
     const normals = geometry.getAttribute("normal");
+    // Degenerate faces get zero normals, which shade as NaN and smear black through the bloom pass.
+    for (let i = 0; i < normals.count; i++) {
+      if (normals.getX(i) === 0 && normals.getY(i) === 0 && normals.getZ(i) === 0) normals.setXYZ(i, 0, 1, 0);
+    }
     const colors = new Float32Array(positions.count * 3);
     const brick = new THREE.Color("#a94f34");
     const limestone = new THREE.Color("#d6c5aa");
