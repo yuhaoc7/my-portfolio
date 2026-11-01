@@ -880,3 +880,426 @@ html[data-theme="dark"] .film {
     animation: none;
   }
 }
+
+/* ==========================================================================
+   Expo mode — the sets as booths on one floor; boards are HTML in the scene
+   ========================================================================== */
+.hud-expo {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(var(--bg-rgb), 0.6);
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+  transition: border-color 0.3s, color 0.3s, background 0.3s;
+}
+.hud-expo:hover,
+.hud-expo:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.hud-expo.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.hud-expo-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 90, 31, 0.2);
+}
+.hud-expo.is-on .hud-expo-dot {
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+/* The story steps aside while the floor is open. */
+.film-main,
+.chapter-rail,
+.hud-bottom {
+  transition: opacity 0.6s ease, visibility 0s linear 0s;
+}
+.film.is-expo .film-main,
+.film.is-expo .chapter-rail,
+.film.is-expo .hud-bottom {
+  opacity: 0 !important;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.5s ease, visibility 0s linear 0.5s;
+}
+
+/* HTML-in-Canvas: the drawable canvas sits under the opaque WebGL canvas; it
+   only has to be rendered so its children get painted, never seen. */
+.expo-atlas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+/* CSS 3D fallback layer, above the scene. */
+.expo-css-layer {
+  position: fixed !important;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.expo-board {
+  width: 600px;
+  height: 780px;
+  box-sizing: border-box;
+}
+.expo-card {
+  position: relative;
+  box-sizing: border-box;
+  width: 600px;
+  height: 780px;
+  padding: 46px 48px 40px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fbfaf6;
+  color: #18181c;
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  cursor: pointer;
+  --card-dim: rgba(24, 24, 28, 0.6);
+  --card-line: rgba(24, 24, 28, 0.14);
+}
+html[data-theme="dark"] .expo-card {
+  background: #1b1c1f;
+  color: #e6e8e9;
+  --card-dim: rgba(230, 232, 233, 0.62);
+  --card-line: rgba(230, 232, 233, 0.14);
+}
+.expo-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  height: 6px;
+  background: var(--accent);
+}
+.expo-card .mono {
+  font-family: var(--mono-f);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.expo-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  margin-bottom: 26px;
+  border-bottom: 1px solid var(--card-line);
+  color: var(--card-dim);
+}
+.expo-card-n {
+  color: var(--accent);
+}
+.expo-card-title {
+  margin: 0 0 12px;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 50px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.expo-card-meta {
+  margin: 0 0 14px;
+  font-size: 16px;
+  font-weight: 500;
+}
+.expo-card-summary {
+  margin: 0 0 20px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 23px;
+  line-height: 1.25;
+  color: var(--card-dim);
+}
+.expo-card-figs {
+  display: flex;
+  gap: 30px;
+  margin: 0 0 18px;
+}
+.expo-card-figs div {
+  display: flex;
+  flex-direction: column;
+}
+.expo-card-fig {
+  font-family: var(--serif);
+  font-size: 46px;
+  line-height: 1;
+  color: var(--accent);
+}
+.expo-card-figs .mono {
+  font-size: 11px;
+  color: var(--card-dim);
+}
+.expo-card-points {
+  list-style: none;
+  margin: 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--card-line);
+  display: grid;
+  gap: 10px;
+}
+.expo-card-points li {
+  position: relative;
+  padding-left: 22px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.expo-card-points li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.75em;
+  width: 10px;
+  height: 1px;
+  background: var(--accent);
+}
+.expo-card-foot {
+  margin-top: auto;
+  padding-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+}
+.expo-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1 1 100%;
+}
+.expo-card-tags span {
+  padding: 4px 11px;
+  border: 1px solid var(--card-line);
+  border-radius: 999px;
+  font-size: 13px;
+}
+.expo-card-links {
+  display: flex;
+  gap: 18px;
+}
+.expo-card a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid var(--card-line);
+  padding-bottom: 2px;
+}
+.expo-card a:hover,
+.expo-card a.is-hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.expo-card-story {
+  margin-left: auto;
+}
+
+/* --- Expo HUD --------------------------------------------------------------- */
+.expo-hud {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0s linear 0.5s;
+}
+.film.is-expo .expo-hud {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.7s ease 0.35s, visibility 0s;
+}
+.expo-hud button {
+  pointer-events: auto;
+}
+.expo-head {
+  position: absolute;
+  top: 82px;
+  left: var(--gutter);
+  right: var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.expo-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.expo-badge {
+  margin: 0;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(var(--bg-rgb), 0.6);
+  backdrop-filter: blur(8px);
+  font-size: 10px !important;
+  pointer-events: auto;
+}
+.expo-exit {
+  all: unset;
+  margin-left: auto;
+  cursor: pointer;
+  padding: 8px 14px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: rgba(var(--bg-rgb), 0.6);
+  backdrop-filter: blur(8px);
+  transition: background 0.3s, color 0.3s;
+}
+.expo-exit:hover,
+.expo-exit:focus-visible {
+  background: var(--ink);
+  color: var(--bg);
+}
+.expo-foot {
+  position: absolute;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.expo-now {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.expo-now-name {
+  font-family: var(--serif);
+  font-size: clamp(28px, 3vw, 40px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+.expo-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px;
+  border: 1px solid var(--glass-line);
+  border-radius: 999px;
+  background: var(--glass);
+  backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: 0 10px 40px var(--glass-shadow);
+}
+.expo-arrow,
+.expo-read,
+.expo-dir button {
+  all: unset;
+  cursor: pointer;
+  box-sizing: border-box;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  transition: background 0.3s, color 0.3s, opacity 0.3s;
+}
+.expo-arrow {
+  width: 36px;
+  font-size: 15px;
+}
+.expo-arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.expo-arrow:not(:disabled):hover,
+.expo-dir button:hover,
+.expo-arrow:focus-visible,
+.expo-dir button:focus-visible,
+.expo-read:focus-visible {
+  background: rgba(var(--ink-rgb), 0.08);
+}
+.expo-dir {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.expo-dir button {
+  gap: 6px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+.expo-dir button.is-on {
+  background: var(--ink);
+  color: var(--bg);
+}
+.expo-read {
+  padding: 0 14px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.expo-read:hover,
+.expo-read[aria-pressed="true"] {
+  background: var(--accent);
+  color: #fff;
+}
+.expo-hint {
+  margin: 0;
+  font-size: 10px !important;
+}
+@media (max-width: 900px) {
+  .expo-dir-name {
+    display: none;
+  }
+  .expo-dir button.is-on .expo-dir-name {
+    display: inline;
+  }
+}
+@media (max-width: 767px) {
+  .expo-head {
+    top: 70px;
+    gap: 10px;
+  }
+  .expo-title .dim {
+    display: none;
+  }
+  .expo-badge {
+    order: 3;
+    flex-basis: 100%;
+    text-align: center;
+  }
+  .expo-dir button {
+    padding: 0 9px;
+  }
+  .expo-read {
+    padding: 0 10px;
+  }
+}
+.expo-now {
+  transition: opacity 0.4s ease;
+}
+.expo-hud.is-reading .expo-now {
+  opacity: 0;
+}

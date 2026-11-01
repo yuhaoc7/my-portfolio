@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
 import Lenis from "lenis";
 import { chapters, profile } from "@/data/resume";
 import Sections from "./Sections";
+import ExpoMode from "./ExpoMode";
 import "./film.css";
 
 gsap.registerPlugin(ScrollTrigger, SplitText);
@@ -33,6 +34,12 @@ export default function FilmSite() {
   const [loaded, setLoaded] = useState(false);
   const [dark, setDark] = useState(false);
   const sceneRef = useRef<import("./world/World").World | null>(null);
+  const [scene, setScene] = useState<import("./world/World").World | null>(null);
+  const [expo, setExpo] = useState(false);
+  const [expoMounted, setExpoMounted] = useState(false);
+  const [expoStart, setExpoStart] = useState(0);
+  const activeRef = useRef(0);
+  activeRef.current = active;
 
   // Theme: the viewer's saved choice, else the system setting.
   useEffect(() => {
@@ -70,6 +77,7 @@ export default function FilmSite() {
         scene.setTheme(document.documentElement.dataset.theme === "dark");
         scene.start();
         scene.fadeIn();
+        setScene(scene);
       } catch {
         // No WebGL: the CSS gradient fallback behind the canvas carries the page.
         el.classList.add("no-webgl");
@@ -153,6 +161,11 @@ export default function FilmSite() {
       const target = document.querySelector(a.getAttribute("href")!);
       if (!target) return;
       e.preventDefault();
+      if (el.classList.contains("is-expo")) {
+        // A nav link out of the expo floor: leave expo, then scroll the story there.
+        setExpo(false);
+        lenis.start();
+      }
       lenis.scrollTo(target as HTMLElement, { duration: 2.2, easing: (t) => 1 - Math.pow(1 - t, 4) });
     };
     el.addEventListener("click", onClick);
@@ -301,13 +314,47 @@ export default function FilmSite() {
     };
   }, []);
 
+  // Expo mode: the scroll story pauses and the camera walks the sets as booths.
+  const openExpo = () => {
+    if (!sceneRef.current) return;
+    setExpoStart(Math.min(6, Math.max(0, activeRef.current - 2)));
+    setExpoMounted(true);
+    setExpo(true);
+  };
+  const closeExpo = useCallback((story?: string) => {
+    setExpo(false);
+    if (story) {
+      // Leave at that booth's scene, after the camera has blended back.
+      setTimeout(() => {
+        const t = document.getElementById(story);
+        if (t) lenisRef.current?.scrollTo(t, { duration: 1.6, easing: (x) => 1 - Math.pow(1 - x, 4) });
+      }, 60);
+    }
+  }, []);
+  useEffect(() => {
+    const lenis = lenisRef.current;
+    if (expo) lenis?.stop();
+    else lenis?.start();
+    try {
+      const url = new URL(window.location.href);
+      if (expo) url.hash = "expo";
+      else if (url.hash === "#expo") url.hash = "";
+      history.replaceState(null, "", url.hash ? url : url.pathname + url.search);
+    } catch {}
+  }, [expo]);
+  // Opened straight from a link to /#expo.
+  useEffect(() => {
+    if (scene && window.location.hash === "#expo") openExpo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scene]);
+
   const jump = (id: string) => {
     const t = document.getElementById(id);
     if (t) lenisRef.current?.scrollTo(t, { duration: 2.2, easing: (x) => 1 - Math.pow(1 - x, 4) });
   };
 
   return (
-    <div ref={root} className={`film ${loaded ? "is-loaded" : ""}`}>
+    <div ref={root} className={`film ${loaded ? "is-loaded" : ""} ${expo ? "is-expo" : ""}`}>
       <canvas ref={canvas} className="film-canvas" aria-hidden="true" />
 
       {/* HUD */}
@@ -331,6 +378,12 @@ export default function FilmSite() {
           <a href="/photography" className="ulink hide-sm">
             Photography
           </a>
+          {scene && (
+            <button type="button" className={`hud-expo ${expo ? "is-on" : ""}`} onClick={expo ? () => closeExpo() : openExpo} aria-pressed={expo}>
+              <span className="hud-expo-dot" aria-hidden="true" />
+              Expo<span className="hide-sm">&nbsp;mode</span>
+            </button>
+          )}
           <button
             type="button"
             className="hud-theme"
@@ -379,6 +432,10 @@ export default function FilmSite() {
       <div ref={cursorRef} className="cursor" aria-hidden="true" />
 
       <Sections />
+
+      {scene && expoMounted && root.current && (
+        <ExpoMode scene={scene} root={root.current} open={expo} startBooth={expoStart} onClose={closeExpo} />
+      )}
     </div>
   );
 }
