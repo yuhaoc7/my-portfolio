@@ -148,7 +148,7 @@ export const skills = [
   { group: "Frontend", items: ["React", "Vue 3", "Node.js", "Express", "ECharts", "Vitest"] },
 ];
 
-/** Narrative chapters — order matches the DOM sections and the camera shots in world/World.ts. */
+/** Narrative chapters — order matches the DOM sections and the the sheet sections in film/SheetContent.tsx. */
 export const chapters = [
   { id: "top", label: "Fade in" },
   { id: "prologue", label: "Prologue" },
