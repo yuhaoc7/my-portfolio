@@ -395,7 +395,7 @@ export function gpuCluster(): Station {
 
   // 16 browser workers (WebArena rollouts)
   const browsers = new THREE.Group();
-  browsers.position.set(0, Y + 12, -5);
+  browsers.position.set(0, Y + 9, -5);
   g.add(browsers);
   const variants = [0, 1, 2, 3].map((v) => {
     const c = new CanvasPlane(512, 340, 1);
@@ -596,8 +596,8 @@ export function gpuCluster(): Station {
         pane.position.z = Math.sin(t * 0.6 + s) * 0.15;
       });
       const bk = smooth(0.6, 0.8, local);
-      browsers.position.y = Y + 12 - (1 - bk) * 2;
-      browsers.scale.setScalar(0.62 + 0.18 * bk);
+      browsers.position.y = Y + 9 - (1 - bk) * 2;
+      browsers.scale.setScalar(0.46 + 0.12 * bk);
     },
   };
 }

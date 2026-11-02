@@ -11,21 +11,22 @@ html.lenis body {
 }
 html:has(.sheet),
 html:has(.sheet) body {
-  background: #e9e7e1;
+  background: #cfc5ae;
 }
 html[data-theme="dark"]:has(.sheet),
 html[data-theme="dark"]:has(.sheet) body {
-  background: #0b0c0e;
+  background: #12110e;
 }
 
 .sheet {
-  --bg: #e9e7e1;
-  --ink: #18181c;
-  --dim: rgba(24, 24, 28, 0.58);
-  --line: rgba(24, 24, 28, 0.14);
-  --bg-rgb: 233, 231, 225;
-  --accent: #ff5a1f;
-  --paper: #2340e3;
+  --bg: #cfc5ae;
+  --ink: #2a2219;
+  --dim: rgba(42, 34, 25, 0.58);
+  --line: rgba(42, 34, 25, 0.14);
+  --bg-rgb: 207, 197, 174;
+  --accent: #4f6b60;
+  --thread: #3f6a5a;
+  --paper: #f3ecdc;
   --serif: var(--font-serif), Georgia, serif;
   --sans: var(--font-geist-sans), system-ui, sans-serif;
   --mono-f: var(--font-geist-mono), ui-monospace, monospace;
@@ -38,11 +39,12 @@ html[data-theme="dark"]:has(.sheet) body {
 }
 html[data-theme="dark"] .sheet {
   color-scheme: dark;
-  --bg: #0b0c0e;
-  --ink: #e6e8e9;
-  --dim: rgba(230, 232, 233, 0.58);
-  --line: rgba(230, 232, 233, 0.14);
-  --bg-rgb: 11, 12, 14;
+  --bg: #12110e;
+  --ink: #e9dfc9;
+  --dim: rgba(233, 223, 201, 0.58);
+  --line: rgba(233, 223, 201, 0.14);
+  --bg-rgb: 18, 17, 14;
+  --thread: #7fb09c;
 }
 .sheet a {
   color: inherit;
@@ -205,6 +207,7 @@ html[data-theme="dark"] .sheet {
   width: 150px;
   height: 28px;
   color: var(--dim);
+  text-shadow: 0 0 5px var(--bg), 0 0 5px var(--bg), 0 0 10px var(--bg);
   transition: color 0.3s;
 }
 .sx-nav button:hover,
@@ -234,9 +237,29 @@ html[data-theme="dark"] .sheet {
 }
 .sx-lines path {
   fill: none;
-  stroke: var(--ink);
-  stroke-width: 1;
-  opacity: 0.55;
+  stroke: var(--thread);
+  stroke-width: 1.3;
+  opacity: 0.75;
+}
+.sx-lines .sx-flow {
+  stroke: #d6efe3;
+  stroke-width: 1.9;
+  opacity: 1;
+  stroke-dasharray: 26 74;
+  animation: sx-flow 3.4s linear infinite;
+}
+@keyframes sx-flow {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sx-lines .sx-flow {
+    animation: none;
+  }
+}
+.sx-lines circle {
+  fill: var(--thread);
 }
 .sx-badge {
   position: fixed;
@@ -273,7 +296,7 @@ html[data-theme="dark"] .sheet {
 .sx-host,
 .sx-column {
   box-sizing: border-box;
-  color: #fff;
+  color: #211b14;
   font-family: var(--sans);
   font-size: 18px;
   line-height: 1.55;
@@ -299,15 +322,15 @@ html[data-theme="dark"] .sheet {
   font-weight: 400;
 }
 .sx-host a {
-  color: #fff;
+  color: #211b14;
   text-decoration: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.45);
+  border-bottom: 1px solid rgba(38, 30, 20, 0.52);
   transition: color 0.2s, border-color 0.2s;
 }
 .sx-host a:hover,
 .sx-host a:focus-visible,
 .sx-host a.is-hover {
-  color: #ffd5c4;
+  color: var(--accent);
   border-color: var(--accent);
 }
 
@@ -320,16 +343,16 @@ html[data-theme="dark"] .sheet {
   font-size: 13px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(38, 30, 20, 0.83);
 }
 .sx-rail b {
   font-weight: 500;
-  color: #fff;
+  color: #211b14;
 }
 .sx-rail-line {
   flex: 1;
   height: 1px;
-  background: rgba(255, 255, 255, 0.28);
+  background: rgba(38, 30, 20, 0.32);
 }
 
 .sx-title {
@@ -337,12 +360,12 @@ html[data-theme="dark"] .sheet {
   font-family: var(--sans);
   font-weight: 600;
   font-size: 92px;
-  line-height: 0.96;
+  line-height: 1.32;
   letter-spacing: -0.035em;
-  text-shadow: 0 6px 24px rgba(5, 10, 60, 0.35);
 }
 .sx-host.is-narrow .sx-title {
   font-size: 48px;
+  line-height: 1.4;
 }
 .sx-meta {
   margin: 0 0 10px;
@@ -359,7 +382,7 @@ html[data-theme="dark"] .sheet {
   font-style: italic;
   font-size: 32px;
   line-height: 1.2;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(38, 30, 20, 0.92);
 }
 .sx-host.is-narrow .sx-summary {
   font-size: 24px;
@@ -369,10 +392,10 @@ html[data-theme="dark"] .sheet {
 .sx-card {
   position: relative;
   padding: 24px 26px 26px;
-  border: 1px solid rgba(255, 255, 255, 0.32);
+  border: 1px solid rgba(38, 30, 20, 0.37);
   border-radius: 4px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
-  box-shadow: 0 18px 40px -18px rgba(3, 8, 50, 0.7);
+  background: #f8f3e7;
+  box-shadow: 0 9px 0 -1px #d9cdb4, 0 9px 0 0 rgba(38, 30, 20, 0.34), 22px 34px 26px -6px rgba(92, 70, 38, 0.28);
 }
 .sx-card::after {
   content: "";
@@ -381,8 +404,8 @@ html[data-theme="dark"] .sheet {
   top: -1px;
   width: 9px;
   height: 9px;
-  border-top: 1px solid #fff;
-  border-right: 1px solid #fff;
+  border-top: 1px solid #211b14;
+  border-right: 1px solid #211b14;
 }
 .sx-cards {
   list-style: none;
@@ -405,7 +428,7 @@ html[data-theme="dark"] .sheet {
   font-size: 12px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #ffb79c;
+  color: var(--accent);
 }
 .sx-degree {
   font-family: var(--serif);
@@ -419,7 +442,7 @@ html[data-theme="dark"] .sheet {
 }
 .sx-tags span {
   padding: 6px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(38, 30, 20, 0.46);
   border-radius: 999px;
   font-family: var(--mono-f);
   font-size: 13px;
@@ -468,9 +491,9 @@ html[data-theme="dark"] .sheet {
   height: auto;
   aspect-ratio: 1;
   object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(38, 30, 20, 0.4);
   border-radius: 4px;
-  background: #fff;
+  background: #211b14;
 }
 
 /* Hero */
@@ -485,22 +508,18 @@ html[data-theme="dark"] .sheet {
 .sx-hero-top {
   display: flex;
   justify-content: space-between;
-  margin: 0 0 40px;
+  margin: 0 0 128px;
   opacity: 0.8;
 }
 .sx-hero-name {
   margin: 0;
   font-weight: 600;
-  font-size: 230px;
-  line-height: 0.86;
+  font-size: 170px;
+  line-height: 1.34;
   letter-spacing: -0.055em;
-  text-shadow: 0 10px 40px rgba(5, 10, 60, 0.4);
 }
 .sx-host.is-narrow .sx-hero-name {
   font-size: 104px;
-}
-.sx-hero-name em {
-  color: var(--accent);
 }
 .sx-hero-role {
   margin: 44px 0 0;
@@ -574,7 +593,7 @@ html[data-theme="dark"] .sheet {
   font-size: 52px;
 }
 .sx-contact .sx-title em {
-  color: #ffb79c;
+  color: var(--accent);
 }
 .sx-mail {
   display: inline-block;
@@ -590,4 +609,135 @@ html[data-theme="dark"] .sheet {
 .sx-credits {
   margin: 90px 0 0;
   opacity: 0.6;
+}
+
+/* Canvas mode: these are drawn as extruded 3D type standing on the sheet. */
+.sx-tiles [data-x3d],
+.sx-tiles [data-x3d] em,
+.sx-raster [data-x3d],
+.sx-raster [data-x3d] em {
+  color: transparent;
+  text-shadow: none;
+}
+
+/* Slabs: a raised block for a model to stand on. */
+.sx-slab-wrap {
+  position: relative;
+  margin: 64px 0 74px;
+}
+.sx-slab {
+  position: relative;
+  padding: 26px 30px 0;
+  border: 1px solid rgba(38, 30, 20, 0.57);
+  background: #f8f3e7;
+  box-shadow: 0 14px 0 -1px #d9cdb4, 0 14px 0 0 rgba(38, 30, 20, 0.39), 34px 48px 34px -8px rgba(92, 70, 38, 0.3);
+}
+.sx-slab .sx-summary {
+  margin: 0;
+  font-size: 26px;
+  max-width: 620px;
+}
+.sx-stage {
+  height: 660px;
+}
+.sx-host.is-narrow .sx-stage {
+  height: 380px;
+}
+.sx-column .sx-stage {
+  height: 40px;
+}
+.sx-dim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 30px);
+  height: 1px;
+  background: rgba(38, 30, 20, 0.52);
+  text-align: center;
+  font-size: 12px;
+  color: rgba(38, 30, 20, 0.8);
+}
+.sx-dim::before,
+.sx-dim::after {
+  content: "";
+  position: absolute;
+  top: -5px;
+  width: 1px;
+  height: 11px;
+  background: rgba(38, 30, 20, 0.69);
+}
+.sx-dim::before {
+  left: 0;
+}
+.sx-dim::after {
+  right: 0;
+}
+.sx-dim span {
+  position: relative;
+  top: 2px;
+}
+.sx-axes {
+  position: absolute;
+  right: -56px;
+  bottom: -46px;
+  width: 120px;
+  height: 90px;
+  overflow: visible;
+}
+.sx-axes path {
+  fill: none;
+  stroke: rgba(38, 30, 20, 0.69);
+  stroke-width: 1;
+}
+.sx-axes text {
+  fill: rgba(38, 30, 20, 0.86);
+  font-family: var(--mono-f);
+  font-size: 11px;
+}
+
+/* The opening map stands here in 3D; this only keeps its place on the sheet. */
+.sx-graph {
+  height: 760px;
+}
+.sx-host.is-narrow .sx-graph {
+  height: 460px;
+}
+.sx-column .sx-graph {
+  display: none;
+}
+
+/* The maker's seal, stamped by the name. */
+.sx-seal {
+  position: absolute;
+  right: 72px;
+  top: 150px;
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  background: var(--accent);
+  border-radius: 7px 11px 6px 12px;
+  color: #f8f1e0;
+  font-family: var(--serif);
+  font-size: 44px;
+  letter-spacing: -0.02em;
+}
+.sx-host.is-narrow .sx-seal {
+  right: 28px;
+  top: 100px;
+  width: 56px;
+  height: 56px;
+  font-size: 26px;
+}
+.sx-hero {
+  position: relative;
+}
+/* Waiting to be rasterized: laid out and focusable, but out of sight. */
+.sx-raster-holder {
+  position: fixed;
+  left: -20000px;
+  top: 0;
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
 }

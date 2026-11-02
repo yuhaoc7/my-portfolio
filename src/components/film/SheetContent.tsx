@@ -21,11 +21,32 @@ function Rail({ n, label, side }: { n: number; label: string; side: string }) {
   );
 }
 
+/** A raised slab: a model stands on it, with a dimension line and axes drawn around it. */
+function Slab({ name, children }: { name: string; children?: ReactNode }) {
+  return (
+    <div className="sx-slab-wrap">
+      <div className="sx-slab" data-slab={name}>
+        {children}
+        <div className="sx-stage" data-stage aria-hidden="true" />
+      </div>
+      <div className="sx-dim sx-mono" aria-hidden="true">
+        <span>Δx</span>
+      </div>
+      <svg className="sx-axes" viewBox="0 0 120 90" aria-hidden="true">
+        <path d="M30 60H110M30 60V8M30 60L6 84M30 40A20 20 0 0 1 48 60" />
+        <text x="96" y="76">x(t)</text>
+        <text x="36" y="14">y(t)</text>
+        <text x="0" y="74">z(t)</text>
+      </svg>
+    </div>
+  );
+}
+
 function Points({ points }: { points: string[] }) {
   return (
     <ol className="sx-cards">
       {points.map((p, i) => (
-        <li key={p} className="sx-card">
+        <li key={p} className="sx-card" data-pin>
           <span className="sx-card-n">{String(i + 1).padStart(2, "0")}</span>
           <p>{p}</p>
         </li>
@@ -37,11 +58,15 @@ function Points({ points }: { points: string[] }) {
 function RoleBlock({ r }: { r: Role }) {
   return (
     <>
-      <h2 className="sx-title">{r.org}</h2>
+      <h2 className="sx-title" data-x3d>
+        {r.org}
+      </h2>
       <p className="sx-meta">
         {r.role} <span>· {r.period}</span>
       </p>
-      <p className="sx-summary">{r.summary}</p>
+      <Slab name={r.role}>
+        <p className="sx-summary">{r.summary}</p>
+      </Slab>
       <Points points={r.points} />
       <div className="sx-tags">
         {r.tags.map((t) => (
@@ -55,7 +80,9 @@ function RoleBlock({ r }: { r: Role }) {
 function WorkBlock({ w, shots }: { w: Work; shots?: string[] }) {
   return (
     <>
-      <h2 className="sx-title">{w.title}</h2>
+      <h2 className="sx-title" data-x3d>
+        {w.title}
+      </h2>
       <p className="sx-meta">
         {w.full} <span>· {w.venue}</span>
       </p>
@@ -67,6 +94,7 @@ function WorkBlock({ w, shots }: { w: Work; shots?: string[] }) {
           </div>
         ))}
       </div>
+      <Slab name={w.venue} />
       {shots && (
         <div className="sx-shots">
           {shots.map((s) => (
@@ -100,14 +128,18 @@ export const SECTIONS: SheetSection[] = [
           <span>A portfolio on one sheet</span>
           <span>{profile.coords}</span>
         </p>
-        <h1 className="sx-hero-name">
+        <span className="sx-seal" aria-hidden="true">
+          YC
+        </span>
+        <h1 className="sx-hero-name" data-x3d>
           Yuhao
           <br />
-          Cheng<em>.</em>
+          Cheng
         </h1>
         <p className="sx-hero-role">
           ML systems &amp; research engineer — <em>M.S. Computer Science, UIUC</em>
         </p>
+        <div className="sx-graph" data-graph aria-hidden="true" />
         <p className="sx-mono sx-hero-cue">↓ Scroll — the sheet runs on</p>
       </div>
     ),
@@ -121,7 +153,7 @@ export const SECTIONS: SheetSection[] = [
         <p className="sx-statement">{profile.tagline}</p>
         <dl className="sx-stats">
           {stats.map((s) => (
-            <div className="sx-card" key={s.label}>
+            <div className="sx-card" key={s.label} data-pin>
               <dt>
                 {s.value.toLocaleString()}
                 <span>{s.suffix}</span>
@@ -139,10 +171,13 @@ export const SECTIONS: SheetSection[] = [
     side: "Education",
     node: (
       <>
-        <h2 className="sx-title">University of Illinois Urbana-Champaign</h2>
+        <h2 className="sx-title" data-x3d>
+          University of Illinois Urbana-Champaign
+        </h2>
+        <Slab name="Altgeld Hall" />
         <ol className="sx-cards">
           {education.map((e) => (
-            <li key={e.degree} className="sx-card">
+            <li key={e.degree} className="sx-card" data-pin>
               <span className="sx-card-n">{e.period}</span>
               <p className="sx-degree">{e.degree}</p>
             </li>
@@ -163,10 +198,12 @@ export const SECTIONS: SheetSection[] = [
     side: "Skills",
     node: (
       <>
-        <h2 className="sx-title">Train · Serve · Measure · Ship</h2>
+        <h2 className="sx-title" data-x3d>
+          Train · Serve · Measure · Ship
+        </h2>
         <div className="sx-skills">
           {skills.map((g, gi) => (
-            <div className="sx-card" key={g.group}>
+            <div className="sx-card" key={g.group} data-pin>
               <span className="sx-card-n">
                 {String(gi + 1).padStart(2, "0")} {g.group}
               </span>
@@ -187,7 +224,7 @@ export const SECTIONS: SheetSection[] = [
     side: "Contact",
     node: (
       <div className="sx-contact">
-        <h2 className="sx-title">
+        <h2 className="sx-title" data-x3d>
           Let&rsquo;s make the <em>next scene</em> together.
         </h2>
         <p className="sx-summary">Open to ML systems, infrastructure and research engineering roles — from Dec 2026.</p>
@@ -207,7 +244,7 @@ export const SECTIONS: SheetSection[] = [
           <a href="/photography">Photography →</a>
         </div>
         <p className="sx-mono sx-credits">
-          © {new Date().getFullYear()} {profile.name} · Drawn with the HTML-in-Canvas API &amp; three.js
+          © {new Date().getFullYear()} {profile.name} · Drawn on one sheet with three.js
         </p>
       </div>
     ),

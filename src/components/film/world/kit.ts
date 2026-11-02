@@ -74,6 +74,7 @@ export function plinth(w: number, d: number) {
   lip.position.y = 0.62;
   lip.castShadow = false;
   g.add(base, lip);
+  g.userData.plinth = true;
   return g;
 }
 

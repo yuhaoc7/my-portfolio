@@ -5,7 +5,8 @@ import { createPortal } from "react-dom";
 import Lenis from "lenis";
 import { profile } from "@/data/resume";
 import { SECTIONS, SectionBlock } from "./SheetContent";
-import type { SheetWorld } from "./world/SheetWorld";
+import type { SheetAnchors, SheetWorld } from "./world/SheetWorld";
+import { canRasterize, rasterize } from "./rasterize";
 import "./sheet.css";
 
 /**
@@ -32,17 +33,72 @@ function supportsHTMLInCanvas() {
 type PaintCanvas = HTMLCanvasElement & { requestPaint?: () => void; onpaint: ((e: Event) => void) | null };
 type DrawCtx = CanvasRenderingContext2D & { drawElementImage(el: Element, dx: number, dy: number, dw: number, dh: number): unknown };
 
+const FAN = 10; // lines from the active index entry out to its section
+
+/** Where the 3D titles, models and wires attach, read back from the laid-out DOM. */
+function measure(hosts: HTMLElement[], tops: number[]): SheetAnchors {
+  const a: SheetAnchors = { titles: [], stages: [], pins: [], slabs: [], names: [], graph: null };
+  hosts.forEach((host, tile) => {
+    const base = host.getBoundingClientRect();
+    const top = tops[tile];
+    const name = SECTIONS[tile].label;
+    a.names.push({ tile, name });
+    host.querySelectorAll<HTMLElement>("[data-x3d]").forEach((el) => {
+      const size = parseFloat(getComputedStyle(el).fontSize);
+      // Group words into their wrapped lines.
+      const lines: { text: string[]; l: number; r: number; b: number; h: number }[] = [];
+      const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      const range = document.createRange();
+      for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+        for (const m of (n.textContent ?? "").matchAll(/\S+/g)) {
+          range.setStart(n, m.index);
+          range.setEnd(n, m.index + m[0].length);
+          const r = range.getBoundingClientRect();
+          const last = lines[lines.length - 1];
+          if (last && Math.abs(last.b - r.bottom) < size * 0.4) {
+            // A word glued to the previous one (no space in the source) stays attached.
+            if (r.left - last.r < 1) last.text[last.text.length - 1] += m[0];
+            else last.text.push(m[0]);
+            last.r = r.right;
+          } else lines.push({ text: [m[0]], l: r.left, r: r.right, b: r.bottom, h: r.height });
+        }
+      }
+      for (const l of lines) {
+        a.titles.push({ text: l.text.join(" "), x: l.l - base.left, w: l.r - l.l, y: top + l.b - base.top - l.h * 0.22, h: l.h, size });
+      }
+    });
+    const graph = host.querySelector<HTMLElement>("[data-graph]");
+    if (graph) {
+      const r = graph.getBoundingClientRect();
+      a.graph = { x: r.left - base.left + r.width / 2, y: top + r.top - base.top + r.height * 0.62 };
+    }
+    host.querySelectorAll<HTMLElement>("[data-stage]").forEach((el) => {
+      const r = el.getBoundingClientRect();
+      a.stages.push({ tile, x: r.left - base.left + r.width / 2, y: top + r.top - base.top + r.height * 0.74 });
+    });
+    host.querySelectorAll<HTMLElement>("[data-pin]").forEach((el) => {
+      const r = el.getBoundingClientRect();
+      a.pins.push({ tile, x: r.left - base.left + 14, y: top + r.top - base.top + 14 });
+    });
+    host.querySelectorAll<HTMLElement>("[data-slab]").forEach((el) => {
+      const r = el.getBoundingClientRect();
+      a.slabs.push({ tile, name: el.dataset.slab || name, x0: r.left - base.left, x1: r.right - base.left, y0: top + r.top - base.top, y1: top + r.bottom - base.top });
+    });
+  });
+  return a;
+}
+
 export default function SheetSite() {
   const root = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const spacer = useRef<HTMLDivElement>(null);
-  const linePath = useRef<SVGPathElement>(null);
+  const lineSvg = useRef<SVGSVGElement>(null);
   const navRef = useRef<HTMLOListElement>(null);
   const lenisRef = useRef<Lenis | null>(null);
   const worldRef = useRef<SheetWorld | null>(null);
   const tops = useRef<number[]>([]);
   const [hosts, setHosts] = useState<HTMLElement[]>([]);
-  const [mode, setMode] = useState<"canvas" | "css" | "none" | null>(null);
+  const [mode, setMode] = useState<"canvas" | "raster" | "css" | "none" | null>(null);
   const [active, setActive] = useState(0);
   const [dark, setDark] = useState(true);
   const activeRef = useRef(0);
@@ -77,6 +133,7 @@ export default function SheetSite() {
     const narrow = window.innerWidth < 768;
     const width = narrow ? 440 : 1080;
     const canvasMode = supportsHTMLInCanvas();
+    const rasterCanvases: HTMLCanvasElement[] = [];
     let disposed = false;
     let world: SheetWorld | null = null;
     const cleanups: (() => void)[] = [];
@@ -109,6 +166,14 @@ export default function SheetSite() {
       el.appendChild(holder);
       cleanups.push(() => holder.remove());
     } else {
+      // Laid out off-screen for now; rasterized onto the sheet once the world exists.
+      const holder = document.createElement("div");
+      holder.className = "sx-raster-holder sx-raster";
+      made.forEach((h) => holder.appendChild(h));
+      el.appendChild(holder);
+      cleanups.push(() => holder.remove());
+    }
+    const toColumn = () => {
       layer = document.createElement("div");
       layer.className = "sx-css-layer";
       column = document.createElement("div");
@@ -117,7 +182,7 @@ export default function SheetSite() {
       made.forEach((h) => column!.appendChild(h));
       el.appendChild(layer);
       cleanups.push(() => layer!.remove());
-    }
+    };
     setHosts(made);
 
     // --- Layout: section tops and heights in CSS px, down the sheet ---
@@ -129,7 +194,7 @@ export default function SheetSite() {
         return t;
       });
       tops.current = tiles.map((t) => t.y);
-      world?.setLayout(width, tiles);
+      world?.setLayout(width, tiles, measure(made, tops.current));
       // Stop when the end of the page has crossed the floor and sits mid-view.
       if (spacer.current) spacer.current.style.height = `${Math.max(0, y - 380) + window.innerHeight}px`;
     };
@@ -174,13 +239,15 @@ export default function SheetSite() {
     el.addEventListener("click", onClick);
     cleanups.push(() => el.removeEventListener("click", onClick));
 
-    import("./world/SheetWorld").then(({ SheetWorld }) => {
+    Promise.all([import("./world/SheetWorld"), canvasMode ? false : canRasterize()]).then(([{ SheetWorld }, rasterMode]) => {
       if (disposed || !canvasRef.current) return;
+      if (!canvasMode && !rasterMode) toColumn();
       try {
-        world = new SheetWorld(canvasRef.current, { bend: canvasMode, reducedMotion: reduced });
+        world = new SheetWorld(canvasRef.current, { bend: canvasMode || rasterMode, reducedMotion: reduced });
       } catch {
         // No WebGL: show the column as an ordinary page.
         el.classList.add("no-webgl");
+        if (!layer) toColumn();
         if (layer && column) {
           layer.remove();
           el.querySelector(".sx-plain")?.appendChild(column);
@@ -220,6 +287,28 @@ export default function SheetSite() {
           };
           c.requestPaint?.();
         });
+        // Web fonts change where the words fall, without always changing a section's height.
+        document.fonts?.ready.then(() => !disposed && layout());
+      } else if (rasterMode) {
+        const k = Math.min(2, Math.max(1.5, window.devicePixelRatio));
+        const paint = async () => {
+          for (let i = 0; i < made.length && !disposed; i++) {
+            const c = (rasterCanvases[i] ??= document.createElement("canvas"));
+            try {
+              await rasterize(made[i], c, k);
+              world!.updateTile(i, c);
+            } catch (err) {
+              console.warn("Could not draw section", made[i].dataset.section, err);
+            }
+          }
+        };
+        // Portals fill the hosts on the next commit; fonts then settle the layout.
+        requestAnimationFrame(async () => {
+          await document.fonts?.ready;
+          if (disposed) return;
+          layout();
+          await paint();
+        });
       } else if (layer && column) {
         world.useCss(layer, column);
         const ro = new ResizeObserver(layout);
@@ -227,26 +316,38 @@ export default function SheetSite() {
         cleanups.push(() => ro.disconnect());
       }
 
-      // The left-hand index draws a line to where its section sits on the sheet.
+      // The left-hand index fans thin lines out to the parts of its section on the sheet.
       world.onFrame = () => {
         const nav = navRef.current;
-        const path = linePath.current;
-        if (!nav || !path || !world) return;
+        const svg = lineSvg.current;
+        if (!nav || !svg || !world) return;
         const i = activeRef.current;
         const dot = nav.querySelectorAll<HTMLElement>(".sx-nav-dot")[i];
-        const p = world.project(tops.current[i] + 60, -1);
-        if (!dot || !p.visible) {
-          path.setAttribute("d", "");
-          return;
-        }
-        const r = dot.getBoundingClientRect();
-        const x0 = r.left + r.width / 2;
-        const y0 = r.top + r.height / 2;
-        const mx = x0 + (p.x - x0) * 0.5;
-        path.setAttribute("d", `M${x0},${y0} C${mx},${y0} ${mx},${p.y} ${p.x},${p.y}`);
+        const paths = svg.querySelectorAll("path");
+        const ends = svg.querySelectorAll("circle");
+        const r = dot?.getBoundingClientRect();
+        const pins = world.pinsOf(i);
+        const targets = [{ x: 40, y: tops.current[i] + 60 }, ...pins];
+        paths.forEach((path, n) => {
+          const k = n % FAN; // a still line and a flowing one per target
+          const t = targets[k];
+          const p = t && r ? world!.projectAt(t.x, t.y) : null;
+          if (!p || !p.visible || !r) {
+            path.setAttribute("d", "");
+            ends[k].setAttribute("r", "0");
+            return;
+          }
+          const x0 = r.left + r.width / 2;
+          const y0 = r.top + r.height / 2;
+          const mx = x0 + (p.x - x0) * (0.42 + k * 0.03);
+          path.setAttribute("d", `M${x0},${y0} C${mx},${y0} ${mx},${p.y} ${p.x},${p.y}`);
+          ends[k].setAttribute("cx", String(p.x));
+          ends[k].setAttribute("cy", String(p.y));
+          ends[k].setAttribute("r", "3.5");
+        });
       };
       world.start();
-      setMode(canvasMode ? "canvas" : "css");
+      setMode(canvasMode ? "canvas" : rasterMode ? "raster" : "css");
     });
 
     const onResize = () => {
@@ -259,8 +360,8 @@ export default function SheetSite() {
     window.addEventListener("pointermove", onMove);
     cleanups.push(() => window.removeEventListener("pointermove", onMove));
 
-    // --- Canvas mode: the sections are pixels on the sheet, so map pointer hits back to their elements ---
-    if (canvasMode) {
+    // --- The sections are pixels on the sheet, so map pointer hits back to their elements ---
+    {
       const canvas = canvasRef.current!;
       let hovered: HTMLElement | null = null;
       const elementAt = (e: PointerEvent | MouseEvent) => {
@@ -284,14 +385,42 @@ export default function SheetSite() {
           a?.classList.add("is-hover"); // a DOM change, so that section repaints
           hovered = a;
         }
-        canvas.style.cursor = a ? "pointer" : "";
+        const nx = (e.clientX / window.innerWidth) * 2 - 1;
+        const ny = -(e.clientY / window.innerHeight) * 2 + 1;
+        if (dragging) {
+          world?.dragMove(nx, ny);
+          moved = true;
+          return;
+        }
+        canvas.style.cursor = a ? "pointer" : world?.overModel(nx, ny) ? "grab" : "";
+      };
+      // Models can be picked up with a mouse; on touch, a drag still scrolls the page.
+      let dragging = false;
+      let moved = false;
+      const onDown = (e: PointerEvent) => {
+        moved = false;
+        if (e.pointerType !== "mouse" || e.button !== 0 || elementAt(e)) return;
+        const nx = (e.clientX / window.innerWidth) * 2 - 1;
+        const ny = -(e.clientY / window.innerHeight) * 2 + 1;
+        if (!world?.dragStart(nx, ny)) return;
+        dragging = true;
+        canvas.setPointerCapture(e.pointerId);
+        canvas.style.cursor = "grabbing";
+      };
+      const onUp = () => {
+        if (!dragging) return;
+        dragging = false;
+        world?.dragEnd();
+        canvas.style.cursor = "grab";
       };
       const onCanvasClick = (e: MouseEvent) => {
+        if (moved) return;
         const a = elementAt(e as PointerEvent);
         if (a) a.click();
       };
       // Tabbing through links inside the canvas brings them into view.
       const onFocusIn = (e: FocusEvent) => {
+        if (!world?.bend) return;
         const t = e.target as HTMLElement;
         const i = made.findIndex((h) => h.contains(t));
         if (i < 0) return;
@@ -299,10 +428,16 @@ export default function SheetSite() {
         scrollToY(tops.current[i] + dy - 200);
       };
       canvas.addEventListener("pointermove", onHover);
+      canvas.addEventListener("pointerdown", onDown);
+      canvas.addEventListener("pointerup", onUp);
+      canvas.addEventListener("pointercancel", onUp);
       canvas.addEventListener("click", onCanvasClick);
       el.addEventListener("focusin", onFocusIn);
       cleanups.push(() => {
         canvas.removeEventListener("pointermove", onHover);
+        canvas.removeEventListener("pointerdown", onDown);
+        canvas.removeEventListener("pointerup", onUp);
+        canvas.removeEventListener("pointercancel", onUp);
         canvas.removeEventListener("click", onCanvasClick);
         el.removeEventListener("focusin", onFocusIn);
       });
@@ -359,11 +494,16 @@ export default function SheetSite() {
           ))}
         </ol>
       </nav>
-      <svg className="sx-lines" aria-hidden="true">
-        <path ref={linePath} />
+      <svg ref={lineSvg} className="sx-lines" aria-hidden="true">
+        {Array.from({ length: FAN * 2 }, (_, k) => (
+          <path key={k} className={k < FAN ? "" : "sx-flow"} />
+        ))}
+        {Array.from({ length: FAN }, (_, k) => (
+          <circle key={k} r="0" />
+        ))}
       </svg>
 
-      {mode && mode !== "none" && (
+      {(mode === "canvas" || mode === "css") && (
         <p className="sx-badge sx-mono" title={mode === "canvas" ? "Every section is live HTML drawn into the WebGL scene with drawElementImage()" : "This browser has no HTML-in-Canvas yet, so the sheet is real HTML laid flat in CSS 3D"}>
           {mode === "canvas" ? "● Rendered with HTML-in-Canvas" : "CSS 3D · enable HTML-in-Canvas in Chrome for the full sheet"}
         </p>
